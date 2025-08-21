@@ -1,0 +1,14 @@
+pandas
+numpy
+matplotlib
+seaborn
+ipykernel
+crawl4ai
+scikit-learn
+xgboost
+lightgbm
+catboost
+tensorflow
+dotenv
+flask
+reflex
