@@ -1,0 +1,158 @@
+columns:
+  - IPO_company_name: str
+  - Chittorgarh_link: str
+  - Security_type: str
+  - IPO_open_date: datetime
+  - IPO_close_date: datetime
+  - IPO_list_date: datetime
+  - IPO_face_value: int64
+  - IPO_issue_price: int64
+  - IPO_lot_size: int64
+  - IPO_issue_size: int64
+  - IPO_Broker_apply:  int64
+  - IPO_Broker_neutral: int64
+  - IPO_Broker_avoid: int64
+  - IPO_Member_apply: int64
+  - IPO_Member_neutral: int64
+  - IPO_Member_avoid: int64
+  - IPO_day1_qib: float64
+  - IPO_day1_nii: float64
+  - IPO_day1_rtl: float64
+  - IPO_day2_qib: float64
+  - IPO_day2_nii: float64
+  - IPO_day2_rtl: float64
+  - IPO_day3_qib: float64
+  - IPO_day3_nii: float64
+  - IPO_day3_rtl: float64
+  - IPO_RHP_doc: str
+  - company_long_name: str
+  - company_website: str
+  - bse_link: str
+  - bse_symbol: str
+  - nse_link: str
+  - nse_symbol: str
+  - screener_link: str
+  - gmp_company_name: str
+  - gmp_website_link: str
+  - day1_date: datetime datetime
+  - day1_price: int64
+  - day2_date: datetime
+  - day2_price: int64
+  - day3_date: datetime
+  - day3_price: int64
+  - day4_date: datetime
+  - day4_price: int64
+  - day5_date: datetime
+  - day5_price: int64
+  - day6_date: datetime
+  - day6_price: int64
+  - day7_date: datetime
+  - day7_price: int64
+  - day8_date: datetime
+  - day8_price: int64
+  - day9_date: datetime
+  - day9_price: int64
+  - day10_date: datetime
+  - day10_price: int64
+  - day11_date: datetime
+  - day11_price: int64
+  - day12_date: datetime
+  - day12_price: int64
+  - day13_date: datetime
+  - day13_price: int64
+  - day14_date: datetime
+  - day14_price: int64
+  - day15_date: datetime
+  - day15_price: int64
+  - day16_date: datetime
+  - day16_price: int64
+  - day17_date: datetime
+  - day17_price: int64
+  - day18_date: datetime
+  - day18_price: int64
+  - day19_date: datetime
+  - day19_price: int64
+  - day20_date: datetime
+  - day20_price: int64
+  - day21_date: datetime
+  - day21_price: int64
+  - day22_date: datetime
+  - day22_price: int64
+  - day23_date: datetime
+  - day23_price: int64
+  - day24_date: datetime
+  - day24_price: int64
+  - day25_date: datetime
+  - day25_price: int64
+  - day26_date: datetime
+  - day26_price: int64
+  - day27_date: datetime
+  - day27_price: int64
+  - day28_date: datetime
+  - day28_price: int64
+  - day29_date: datetime
+  - day29_price: int64
+  - day30_date: datetime
+  - day30_price: int64
+  - day31_date: datetime
+  - day31_price: int64
+  - day32_date: datetime
+  - day32_price: int64
+  - day33_date: datetime
+  - day33_price: int64
+  - IPO_listing_price: float64
+
+numerical_columns:
+ - IPO_face_value
+ - IPO_issue_price
+ - IPO_lot_size
+ - IPO_issue_size
+ - IPO_Broker_apply
+ - IPO_Broker_neutral
+ - IPO_Broker_avoid
+ - IPO_Member_apply
+ - IPO_Member_neutral
+ - IPO_Member_avoid
+ - IPO_day1_qib
+ - IPO_day1_nii
+ - IPO_day1_rtl
+ - IPO_day2_qib
+ - IPO_day2_nii
+ - IPO_day2_rtl
+ - IPO_day3_qib
+ - IPO_day3_nii
+ - IPO_day3_rtl
+ - day1_price
+ - day2_price
+ - day3_price
+ - day4_price
+ - day5_price
+ - day6_price
+ - day7_price
+ - day8_price
+ - day9_price
+ - day10_price
+ - day11_price
+ - day12_price
+ - day13_price
+ - day14_price
+ - day15_price
+ - day16_price
+ - day17_price
+ - day18_price
+ - day19_price
+ - day20_price
+ - day21_price
+ - day22_price
+ - day23_price
+ - day24_price
+ - day25_price
+ - day26_price
+ - day27_price
+ - day28_price
+ - day29_price
+ - day30_price
+ - day31_price
+ - day32_price
+ - day33_price
+ - IPO_listing_price

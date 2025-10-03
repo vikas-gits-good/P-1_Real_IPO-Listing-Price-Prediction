@@ -7,9 +7,10 @@ from sklearn.model_selection import train_test_split
 
 from src.Logging.logger_train import logging
 from src.Exception.exception import CustomException
-from src.Constants import mongo_db_dc, common_constants
+from src.Constants import common_constants, mongo_db_dc
 from src.Entity.config_entity import DataIngestionConfig
 from src.Entity.artifact_entity import DataIngestionArtifact
+from src.Utils.main_utils import save_dataframe
 
 load_dotenv("src/Secrets/mongo_db.env")
 MONGO_DB_UN = os.getenv("MONGO_DB_UN")
@@ -29,7 +30,7 @@ class DataIngestion:
             logging.info(f"Error: {e}")
             raise CustomException(e)
 
-    def get_dataframe(self):
+    def get_dataframe(self) -> pd.DataFrame:
         try:
             db_database_name = self.data_ingestion_config.database_name
             db_collection_name = self.data_ingestion_config.collection_name
@@ -45,25 +46,20 @@ class DataIngestion:
             logging.info(f"Error: {e}")
             raise CustomException(e)
 
-    def save_data_to_file(self, data: pd.DataFrame = None, path: str = None):
-        try:
-            dir_path = os.path.dirname(path)
-            os.makedirs(dir_path, exist_ok=True)
-            data.to_csv(path, header=True, index=False)
-
-        except Exception as e:
-            logging.info(f"Error: {e}")
-            raise CustomException(e)
-
-    def initialise(self):
+    def initialise(self) -> DataIngestionArtifact:
         try:
             logging.info("Data Ingestion: Started")
             logging.info("Data Ingestion: Getting data from database")
             df_main = self.get_dataframe()
 
-            logging.info("Data Ingestion: Performing train-test split")
-            df_train, df_test = train_test_split(
+            logging.info("Data Ingestion: Performing train-valid-test split")
+            df_train, df_valid = train_test_split(
                 df_main,
+                train_size=self.data_ingestion_config.train_size,
+                random_state=self.data_ingestion_config.random_state,
+            )
+            df_valid, df_test = train_test_split(
+                df_valid,
                 test_size=self.data_ingestion_config.test_size,
                 random_state=self.data_ingestion_config.random_state,
             )
@@ -72,13 +68,15 @@ class DataIngestion:
             for data, path in [
                 (df_main, self.data_ingestion_config.feature_store_dir),
                 (df_train, self.data_ingestion_config.train_dir),
+                (df_valid, self.data_ingestion_config.vald_dir),
                 (df_test, self.data_ingestion_config.test_dir),
             ]:
-                self.save_data_to_file(data=data, path=path)
+                save_dataframe(data=data, path=path)
 
             logging.info("Data Ingestion: Exporting data ingestion artifact")
             di_artf = DataIngestionArtifact(
                 train_file_path=self.data_ingestion_config.train_dir,
+                vald_file_path=self.data_ingestion_config.vald_dir,
                 test_file_path=self.data_ingestion_config.test_dir,
             )
             logging.info("Data Ingestion: Finished")

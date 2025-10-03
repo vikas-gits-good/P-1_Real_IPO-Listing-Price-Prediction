@@ -22,4 +22,6 @@ nse
 bse
 pymongo
 certifi
+scipy
+pyaml
 # -e .
