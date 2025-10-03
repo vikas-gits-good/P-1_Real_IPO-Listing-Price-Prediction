@@ -7,11 +7,12 @@ from dotenv import load_dotenv
 
 from src.Logging.logger_etl import logging
 from src.Exception.exception import CustomException
+from src.Constants import mongo_db_dc, data_ingestion, common_constants
 
 load_dotenv("src/Secrets/mongo_db.env")
 MONGO_DB_UN = os.getenv("MONGO_DB_UN")
 MONGO_DB_PW = os.getenv("MONGO_DB_PW")
-MONGO_DB_URL = f"mongodb+srv://{MONGO_DB_UN}:{MONGO_DB_PW}@cluster0.8y5aipc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_DB_URL = f"mongodb+srv://{MONGO_DB_UN}:{MONGO_DB_PW}@cluster0.8y5aipc.mongodb.net/?retryWrites=true&w=majority&appName={mongo_db_dc.CLUSTER_NAME}"
 print(MONGO_DB_URL)
 ca = certifi.where()
 
@@ -49,9 +50,9 @@ class IPODataExtract:
 
 
 if __name__ == "__main__":
-    FILE_PATH = "src/Data/InitialData/ipo_scrn_gmp_Mainboard.csv"
-    DATABASE = "RealWorldProjects"
-    Collection = "IPOPred"
+    FILE_PATH = f"{data_ingestion.DATA_DIR}/{common_constants.DATA_FILE_NAME}"
+    DATABASE = mongo_db_dc.DATABASE_NAME
+    Collection = mongo_db_dc.COLLECTION_NAME
     logging.info("ETL | Pushing Started")
     networkobj = IPODataExtract()
     records = networkobj.csv_to_json_convertor(file_path=FILE_PATH)

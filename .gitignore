@@ -5,11 +5,11 @@ __pycache__/
 
 # local folders
 logs/
+Artifacts/
 src/Research/
 src/Secrets/
 src/Data/
 src/ETL/
-
 
 # C extensions
 *.so
