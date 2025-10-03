@@ -12,3 +12,14 @@ tensorflow
 dotenv
 flask
 reflex
+beautifulsoup4
+smartapi-python
+pyotp
+pytz
+logzero
+websocket
+nse
+bse
+pymongo
+certifi
+# -e .
