@@ -3,7 +3,10 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from pymongo import MongoClient
+
 from sklearn.model_selection import train_test_split
+# from skmultilearn.model_selection import iterative_train_test_split
+
 
 from src.Logging.logger_train import logging
 from src.Exception.exception import CustomException
@@ -15,9 +18,7 @@ from src.Utils.main_utils import save_dataframe
 load_dotenv("src/Secrets/mongo_db.env")
 MONGO_DB_UN = os.getenv("MONGO_DB_UN")
 MONGO_DB_PW = os.getenv("MONGO_DB_PW")
-MONGO_DB_DC = mongo_db_dc()
-COMMON_CONSTANTS = common_constants()
-MONGO_DB_URL = f"mongodb+srv://{MONGO_DB_UN}:{MONGO_DB_PW}@cluster0.8y5aipc.mongodb.net/?retryWrites=true&w=majority&appName={MONGO_DB_DC.CLUSTER_NAME}"
+MONGO_DB_URL = f"mongodb+srv://{MONGO_DB_UN}:{MONGO_DB_PW}@cluster0.8y5aipc.mongodb.net/?retryWrites=true&w=majority&appName={mongo_db_dc.CLUSTER_NAME}"
 
 
 class DataIngestion:
@@ -37,10 +38,27 @@ class DataIngestion:
             self.mongo_client = MongoClient(MONGO_DB_URL)
             collections = self.mongo_client[db_database_name][db_collection_name]
             df = pd.DataFrame(list(collections.find()))
+            df.drop_duplicates(inplace=True, ignore_index=True)
             if "_id" in df.columns:
                 df.drop(columns=["_id"], inplace=True)
             df.replace({"na": np.nan}, inplace=True)
             return df
+
+        except Exception as e:
+            logging.info(f"Error: {e}")
+            raise CustomException(e)
+
+    def get_indices(self, df, X_split):
+        try:
+            return df[
+                df.drop(columns=common_constants.TARGET_COLUMN)
+                .apply(tuple, axis=1)
+                .isin(
+                    pd.DataFrame(
+                        X_split, columns=df.columns.drop(common_constants.TARGET_COLUMN)
+                    ).apply(tuple, axis=1)
+                )
+            ].index
 
         except Exception as e:
             logging.info(f"Error: {e}")
@@ -57,11 +75,13 @@ class DataIngestion:
                 df_main,
                 train_size=self.data_ingestion_config.train_size,
                 random_state=self.data_ingestion_config.random_state,
+                stratify=df_main[common_constants.TARGET_COLUMN],
             )
             df_valid, df_test = train_test_split(
                 df_valid,
                 test_size=self.data_ingestion_config.test_size,
                 random_state=self.data_ingestion_config.random_state,
+                stratify=df_valid[common_constants.TARGET_COLUMN],
             )
 
             logging.info("Data Ingestion: Saving ingested data to file")

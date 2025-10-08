@@ -1,7 +1,13 @@
 import os
 from datetime import datetime
 
-from src.Constants import common_constants, mongo_db_dc, data_ingestion, data_validation
+from src.Constants import (
+    common_constants,
+    mongo_db_dc,
+    data_ingestion,
+    data_validation,
+    data_transformation,
+)
 
 
 class TrainingPipelineConfig:
@@ -104,4 +110,39 @@ class DataValidationConfig:
 
 
 # for var, val in vars(DataValidationConfig()).items():
+#     print(f"{var}: {val}")
+
+
+class DataTransformationConfig:
+    def __init__(
+        self,
+        training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig(),
+    ):
+        self.data_transformation_dir = os.path.join(
+            training_pipeline_config.artifact_dir_path,
+            data_transformation.DATA_TRANSFORMATION_DIR_NAME,
+        )
+        self.trfm_train_file_path = os.path.join(
+            self.data_transformation_dir,
+            data_transformation.TRANSFORMED_DATA_DIR_NAME,
+            common_constants.TRAIN_FILE_NAME.replace("csv", "npy"),
+        )
+        self.trfm_vald_file_path = os.path.join(
+            self.data_transformation_dir,
+            data_transformation.TRANSFORMED_DATA_DIR_NAME,
+            common_constants.VALD_FILE_NAME.replace("csv", "npy"),
+        )
+        self.trfm_test_file_path = os.path.join(
+            self.data_transformation_dir,
+            data_transformation.TRANSFORMED_DATA_DIR_NAME,
+            common_constants.TEST_FILE_NAME.replace("csv", "npy"),
+        )
+        self.trfm_object_file_path = os.path.join(
+            self.data_transformation_dir,
+            data_transformation.TRANSFORMED_DATA_OBJECT_DIR_NAME,
+            data_transformation.TRANSFORMATION_OBJECT_NAME,
+        )
+
+
+# for var, val in vars(DataTransformationConfig()).items():
 #     print(f"{var}: {val}")

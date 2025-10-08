@@ -26,11 +26,13 @@ class DataValidation:
 
     def validate_num_of_cols(self, data: pd.DataFrame = None) -> bool:
         try:
-            return (
-                True
-                if len(data.columns) == len(self._schema_config["columns"])
-                else False
-            )
+            if len(data.columns) == len(self._schema_config["columns"]):
+                return True
+            else:
+                logging.info(
+                    "Data Validation: Number of columns between dataset and schema are mismatched."
+                )
+                return False
 
         except Exception as e:
             logging.info(f"Error: {e}")

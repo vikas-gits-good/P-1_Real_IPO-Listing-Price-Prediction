@@ -34,7 +34,7 @@ columns:
   - screener_link: str
   - gmp_company_name: str
   - gmp_website_link: str
-  - day1_date: datetime datetime
+  - day1_date: datetime
   - day1_price: int64
   - day2_date: datetime
   - day2_price: int64
@@ -101,6 +101,8 @@ columns:
   - day33_date: datetime
   - day33_price: int64
   - IPO_listing_price: float64
+  - IPO_listing_gain_percentage: float64
+  - IPO_listing_gain_category: str
 
 numerical_columns:
  - IPO_face_value
@@ -156,3 +158,4 @@ numerical_columns:
  - day32_price
  - day33_price
  - IPO_listing_price
+ - IPO_listing_gain_percentage

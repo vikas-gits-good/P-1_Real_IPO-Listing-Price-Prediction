@@ -1,17 +1,17 @@
-from dataclasses import dataclass
+import numpy as np
+from dataclasses import dataclass, field
 
 
 @dataclass
 class common_constants:
-    TARGET_COLUMN = "IPO_listing_price"
+    TARGET_COLUMN = "IPO_listing_gain_category"
     PIPELINE_NAME = "src"
     ARTIFACT_DIR = "Artifacts"
     DATA_FILE_NAME = "ipo_scrn_gmp_EQ.csv"
     TRAIN_FILE_NAME = "train.csv"
     VALD_FILE_NAME = "valid.csv"
     TEST_FILE_NAME = "test.csv"
-
-    RANDOM = 257
+    RANDOM = 566
 
 
 @dataclass
@@ -41,3 +41,16 @@ class data_validation:
     DRIFT_REPORT_FILE_NAME_VALD = "drift_report_vald.yaml"
     DRIFT_REPORT_FILE_NAME_TEST = "drift_report_test.yaml"
     SCHEMA_FILE_PATH = "src/Constants/validation_schema.yaml"
+
+
+@dataclass
+class data_transformation:
+    DATA_TRANSFORMATION_DIR_NAME = "data_transformation"
+    TRANSFORMED_DATA_DIR_NAME = "transformed_data"
+    TRANSFORMED_DATA_OBJECT_DIR_NAME = "transformed_object"
+    TRANSFORMATION_OBJECT_NAME = "ppln_prpc.pkl"
+    TRANSFORMATION_IMPUTER_PARAMS = {
+        "missing_values": np.nan,
+        "n_neighbors": 5,
+        "weights": "uniform",
+    }
