@@ -6,7 +6,12 @@ from src.Exception.exception import CustomException
 from src.Constants import data_validation
 from src.Entity.config_entity import DataValidationConfig
 from src.Entity.artifact_entity import DataIngestionArtifact, DataValidationArtifact
-from src.Utils.main_utils import read_yaml_file, write_yaml_file, save_dataframe
+from src.Utils.main_utils import (
+    read_dataframe,
+    read_yaml_file,
+    write_yaml_file,
+    save_dataframe,
+)
 
 
 class DataValidation:
@@ -109,7 +114,7 @@ class DataValidation:
             logging.info("Data Validation: Started")
             logging.info("Data Validation: Getting ingested data from file")
             df_train, df_vald, df_test = [
-                pd.read_csv(path)
+                read_dataframe(path)
                 for path in [
                     self.data_ingestion_artifact.train_file_path,
                     self.data_ingestion_artifact.vald_file_path,

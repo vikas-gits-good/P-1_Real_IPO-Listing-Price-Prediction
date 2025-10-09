@@ -3,6 +3,7 @@ from src.Exception.exception import CustomException
 from src.Components.data_ingestion import DataIngestion
 from src.Components.data_validation import DataValidation
 from src.Components.data_transformation import DataTransformation
+from src.Components.model_trainer import ModelTrainer
 
 
 class TrainIPOPrediction:
@@ -21,6 +22,7 @@ class TrainIPOPrediction:
             dt_artf = DataTransformation(dv_artf).initialise()
 
             logging.info(f"{'Model Training':-^{60}}")
+            mt_artf = ModelTrainer(dt_artf).initialise()
 
             logging.info(f"{'Model Pushing':-^{60}}")
 

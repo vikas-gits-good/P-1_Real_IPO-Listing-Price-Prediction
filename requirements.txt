@@ -9,6 +9,7 @@ xgboost
 lightgbm
 catboost
 tensorflow
+scikeras
 dotenv
 flask
 reflex

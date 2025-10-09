@@ -1,5 +1,6 @@
 import numpy as np
-from dataclasses import dataclass, field
+from datetime import datetime
+from dataclasses import dataclass
 
 
 @dataclass
@@ -12,6 +13,8 @@ class common_constants:
     VALD_FILE_NAME = "valid.csv"
     TEST_FILE_NAME = "test.csv"
     RANDOM = 566
+    SAVED_MODEL_DIR_NAME = "saved_models"
+    SAVED_MODEL_FILE_NAME = "model.pkl"
 
 
 @dataclass
@@ -54,3 +57,12 @@ class data_transformation:
         "n_neighbors": 5,
         "weights": "uniform",
     }
+
+
+@dataclass
+class model_trainer:
+    MODEL_TRAINER_DIR_NAME = "model_trainer"
+    TRAINED_MODEL_DIR_NAME = "trained_model"
+    TRAINED_MODEL_NAME = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_model.pkl"
+    TRAINED_MODEL_EXPECTED_SCORE = 0.7
+    TRAINED_MODEL_BAD_FIT_THRESHOLD = 0.05

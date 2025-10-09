@@ -6,6 +6,7 @@ __pycache__/
 # local folders
 logs/
 Artifacts/
+catboost_info/
 src/Research/
 src/Secrets/
 src/Data/

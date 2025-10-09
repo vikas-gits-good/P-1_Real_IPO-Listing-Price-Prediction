@@ -16,7 +16,11 @@ from src.Entity.artifact_entity import (
     DataValidationArtifact,
     DataTransformationArtifact,
 )
-from src.Utils.main_utils import save_numpy_array, save_transformation_object
+from src.Utils.main_utils import (
+    read_dataframe,
+    save_numpy_array,
+    save_transformation_object,
+)
 
 
 class DataTransformation:
@@ -152,7 +156,7 @@ class DataTransformation:
             logging.info("Data Transformation: Started")
             logging.info("Data Transformation: Getting validated data from file")
             df_train, df_vald, df_test = [
-                pd.read_csv(path)
+                read_dataframe(path)
                 for path in [
                     self.data_validation_artifact.valid_train_file_path,
                     self.data_validation_artifact.valid_vald_file_path,
@@ -166,6 +170,11 @@ class DataTransformation:
                 )
                 for df in [df_train, df_vald, df_test]
             ]
+            # converting 'Cat_1','Cat_2',...,'Cat_6' to 0,1,...,5
+            y_train, y_vald, y_test = [
+                series.apply(lambda x: int(x.split("_")[1]) - 1)
+                for series in [y_train, y_vald, y_test]
+            ]
 
             logging.info("Data Transformation: Creating transformation pipeline object")
             impt_cols = [
@@ -177,6 +186,8 @@ class DataTransformation:
                 "IPO_Member_apply",
                 "IPO_day2_qib",
                 "IPO_day2_nii",
+                "gmp_sum_roc",
+                "gmp_pu_day",
             ]
             ppln_prpc = self.create_pipeline_object(columns=impt_cols)
 

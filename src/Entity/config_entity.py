@@ -7,6 +7,7 @@ from src.Constants import (
     data_ingestion,
     data_validation,
     data_transformation,
+    model_trainer,
 )
 
 
@@ -145,4 +146,26 @@ class DataTransformationConfig:
 
 
 # for var, val in vars(DataTransformationConfig()).items():
+#     print(f"{var}: {val}")
+
+
+class ModelTrainerConfig:
+    def __init__(
+        self,
+        training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig(),
+    ):
+        self.model_trainer_dir = os.path.join(
+            training_pipeline_config.artifact_dir_path,
+            model_trainer.MODEL_TRAINER_DIR_NAME,
+        )
+        self.trained_model_file_path = os.path.join(
+            self.model_trainer_dir,
+            model_trainer.TRAINED_MODEL_DIR_NAME,
+            model_trainer.TRAINED_MODEL_NAME,
+        )
+        self.expected_model_score = model_trainer.TRAINED_MODEL_EXPECTED_SCORE
+        self.bad_fit_threshold = model_trainer.TRAINED_MODEL_BAD_FIT_THRESHOLD
+
+
+# for var, val in vars(ModelTrainerConfig()).items():
 #     print(f"{var}: {val}")
