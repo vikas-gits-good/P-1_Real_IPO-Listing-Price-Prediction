@@ -25,4 +25,5 @@ pymongo
 certifi
 scipy
 pyaml
+mlflow
 # -e .

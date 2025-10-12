@@ -1,11 +1,14 @@
+import mlflow
 import functools
 import numpy as np
+from typing import List
 from scikeras.wrappers import KerasClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 from src.Logging.logger_train import logging
 from src.Exception.exception import CustomException
 from src.Constants import common_constants
-from src.Constants.model_constants import nn_param_grid, model_dict, create_model
+from src.Constants.model_constants import model_dict, create_model
 from src.Entity.config_entity import ModelTrainerConfig
 from src.Entity.artifact_entity import DataTransformationArtifact, ModelTrainerArtifact
 from src.Utils.main_utils import (
@@ -14,8 +17,8 @@ from src.Utils.main_utils import (
     save_model_object,
     evaluate_models,
 )
-from src.Utils.ml_utils import get_model_scores
 from src.Utils.estimator import NetworkModel
+from src.Utils.ml_utils import get_model_scores, ClassificationMetricArtifact
 
 
 class ModelTrainer:
@@ -32,6 +35,25 @@ class ModelTrainer:
             logging.info(f"Error: {e}")
             raise CustomException(e)
 
+    def track_mlflow(
+        self,
+        model: RandomForestClassifier = None,
+        metrics: List[ClassificationMetricArtifact] = None,
+    ) -> None:
+        try:
+            with mlflow.start_run():
+                metrics_data = {
+                    f"{dataset}_{score}": getattr(metric, score)
+                    for dataset, metric in zip(["train", "vald", "test"], metrics)
+                    for score in ["f1_score", "precision_score", "recall_score"]
+                }
+                mlflow.log_metrics(metrics=metrics_data)
+                mlflow.sklearn.log_model(sk_model=model, name="model")
+
+        except Exception as e:
+            logging.info(f"Error: {e}")
+            raise CustomException(e)
+
     def train_model(
         self,
         x_train: np.typing.NDArray = None,
@@ -42,7 +64,6 @@ class ModelTrainer:
         y_test: np.typing.NDArray = None,
     ) -> dict:
         try:
-            # nn_param_grid["input_shape"][0] = (x_train.shape[1],)
             model_dict["TFNeuralNetwork"]["Model"] = KerasClassifier(
                 model=functools.partial(create_model, input_shape=(x_train.shape[1],)),
                 index=0,
@@ -57,21 +78,22 @@ class ModelTrainer:
             best_model_score = models_report[best_model_name]["Model_score"]
 
             logging.info(
-                f"Model Trainer: Scoring best performing model '{best_model_name}' on test set"
+                f"Model Training: Scoring best performing model '{best_model_name}' on test set"
             )
             y_pred_test = best_model_object.predict(x_test)
             best_model_score += [get_model_scores(y_true=y_test, y_pred=y_pred_test)]
 
-            print(
-                f"{best_model_score[0].f1_score:.4f}\n{best_model_score[0].precision_score:.4f}\n{best_model_score[0].recall_score:.4f}\n{best_model_score[1].f1_score:.4f}\n{best_model_score[1].precision_score:.4f}\n{best_model_score[1].recall_score:.4f}\n{best_model_score[2].f1_score:.4f}\n{best_model_score[2].precision_score:.4f}\n{best_model_score[2].recall_score:.4f}"
+            logging.info(
+                f"Model Training: Using MLFlow to track {best_model_name}'s metrics"
+            )
+            self.track_mlflow(best_model_object, best_model_score)
+
+            logging.info(
+                f"Model Training: {best_model_name}'s test set scores: f1_score={best_model_score[2].f1_score:.4f}, precision_score={best_model_score[2].precision_score:.4f}, recall_score={best_model_score[2].recall_score:.4f}"
             )
 
             logging.info(
-                f"Model Trainer: {best_model_name}'s test set scores: f1_score={best_model_score[2].f1_score:.4f}, precision_score={best_model_score[2].precision_score:.4f}, recall_score={best_model_score[2].recall_score:.4f}"
-            )
-
-            logging.info(
-                f"Model Trainer: Saving best fit '{best_model_name}' model to file"
+                f"Model Training: Saving best fit '{best_model_name}' model to file"
             )
             ppln_prpc = read_transformation_object(
                 file_path=self.data_transformation_artifact.transformed_object_file_path

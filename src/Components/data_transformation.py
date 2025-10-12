@@ -119,8 +119,8 @@ class DataTransformation:
 
     def create_pipeline_object(self, columns: List[str] = None) -> Pipeline:
         try:
-            dt = data_transformation()
-            impt_params = dt.TRANSFORMATION_IMPUTER_PARAMS
+            # dt = data_transformation()
+            # impt_params = dt.TRANSFORMATION_IMPUTER_PARAMS
             ppln_prpc = Pipeline(
                 [
                     ("Preprocessing", FunctionTransformer(self.create_gmp_columns)),
@@ -130,7 +130,9 @@ class DataTransformation:
                             [
                                 (
                                     "KNNImputer",
-                                    KNNImputer(**impt_params),
+                                    KNNImputer(
+                                        **data_transformation.TRANSFORMATION_IMPUTER_PARAMS
+                                    ),
                                     columns,
                                 ),
                             ],

@@ -26,20 +26,20 @@ nn_arch_dict = {
     "neurons_layer_wise": [
         [16, 16, 16, 16, 6],
         [32, 32, 32, 32, 6],
-        [16, 32, 32, 16, 6],
-        [32, 16, 16, 32, 6],
-        [16, 32, 16, 32, 6],
-        [32, 16, 32, 16, 6],
-        [128, 64, 32, 16, 6],
+        # [16, 32, 32, 16, 6],
+        # [32, 16, 16, 32, 6],
+        # [16, 32, 16, 32, 6],
+        # [32, 16, 32, 16, 6],
+        # [128, 64, 32, 16, 6],
     ],
     "activation_layer_wise": [
         ["elu", "elu", "elu", "elu", "softmax"],
         ["elu", "elu", "elu", "elu", "softmax"],
-        ["elu", "elu", "elu", "elu", "softmax"],
-        ["elu", "elu", "elu", "elu", "softmax"],
-        ["elu", "elu", "elu", "elu", "softmax"],
-        ["elu", "elu", "elu", "elu", "softmax"],
-        ["elu", "elu", "elu", "elu", "softmax"],
+        # ["elu", "elu", "elu", "elu", "softmax"],
+        # ["elu", "elu", "elu", "elu", "softmax"],
+        # ["elu", "elu", "elu", "elu", "softmax"],
+        # ["elu", "elu", "elu", "elu", "softmax"],
+        # ["elu", "elu", "elu", "elu", "softmax"],
     ],
 }
 
@@ -87,25 +87,31 @@ nn_param_grid = {
 model_dict = {
     "LogisticRegression": {
         "Model": LogisticRegression(n_jobs=-1, random_state=common_constants.RANDOM),
-        "Parameters": {"penalty": ["l2"], "max_iter": [100, 200]},
+        "Parameters": {
+            # "penalty": ["l2"],
+            # "max_iter": [100, 200]
+        },
     },
     "KNeighborsClassifier": {
         "Model": KNeighborsClassifier(n_jobs=-1),
-        "Parameters": {"n_neighbors": [3, 5], "leaf_size": [30, 50]},
+        "Parameters": {
+            # "n_neighbors": [3, 5],
+            # "leaf_size": [30, 50]
+        },
     },
     "DecisionTreeClassifier": {
         "Model": DecisionTreeClassifier(random_state=common_constants.RANDOM),
         "Parameters": {
-            "max_depth": [None, 50],
-            "min_samples_split": [2, 3],
-            "min_samples_leaf": [1, 2],
+            # "max_depth": [None, 50],
+            # "min_samples_split": [2, 3],
+            # "min_samples_leaf": [1, 2],
         },
     },
     "AdaBoostClassifier": {
         "Model": AdaBoostClassifier(random_state=common_constants.RANDOM),
         "Parameters": {
-            "n_estimators": [50, 100],
-            "learning_rate": [1.0, 0.08],
+            # "n_estimators": [50, 100],
+            # "learning_rate": [1.0, 0.08],
         },
     },
     "GradientBoostingClassifier": {
@@ -113,14 +119,14 @@ model_dict = {
             random_state=common_constants.RANDOM, criterion="friedman_mse"
         ),
         "Parameters": {
-            "loss": ["log_loss"],
-            "learning_rate": [0.1, 0.05],
-            "n_estimators": [100, 200],
-            "subsample": [1.0, 0.75],
-            "min_samples_split": [2, 3],
-            "min_samples_leaf": [1, 2],
-            "max_depth": [10, 50],
-            "n_iter_no_change": [5],
+            # "loss": ["log_loss"],
+            # "learning_rate": [0.1, 0.05],
+            # "n_estimators": [100, 200],
+            # "subsample": [1.0, 0.75],
+            # "min_samples_split": [2, 3],
+            # "min_samples_leaf": [1, 2],
+            # "max_depth": [10, 50],
+            # "n_iter_no_change": [5],
         },
     },
     "RandomForestClassifier": {
@@ -128,51 +134,50 @@ model_dict = {
             n_jobs=-1, random_state=common_constants.RANDOM
         ),
         "Parameters": {
-            "n_estimators": [100, 200],
-            "max_depth": [None, 50],
-            "min_samples_split": [2, 3],
-            "min_samples_leaf": [1, 2],
-            "max_leaf_nodes": [None, 100],
+            # "n_estimators": [100, 200],
+            # "max_depth": [None, 50],
+            # "min_samples_split": [2, 3],
+            # "min_samples_leaf": [1, 2],
+            # "max_leaf_nodes": [None, 100],
         },
     },
     "HistGradientBoostingClassifier": {
         "Model": HistGradientBoostingClassifier(random_state=common_constants.RANDOM),
         "Parameters": {
-            # "loss": ["log_loss", "categorical_crossentropy"],
-            "learning_rate": [0.1, 0.08],
-            "max_iter": [100, 200],
-            "max_leaf_nodes": [31, 50],
-            "max_depth": [None, 50],
-            "min_samples_leaf": [20, 50],
-            "l2_regularization": [0.0, 0.2],
+            # "learning_rate": [0.1, 0.08],
+            # "max_iter": [100, 200],
+            # "max_leaf_nodes": [31, 50],
+            # "max_depth": [None, 50],
+            # "min_samples_leaf": [20, 50],
+            # "l2_regularization": [0.0, 0.2],
         },
     },
     "ExtraTreesClassifier": {
         "Model": ExtraTreesClassifier(n_jobs=-1, random_state=common_constants.RANDOM),
         "Parameters": {
-            "n_estimators": [100, 200],
-            "max_depth": [None, 50],
-            "min_samples_split": [2, 3],
-            "min_samples_leaf": [1, 2],
-            "max_leaf_nodes": [None, 50],
+            # "n_estimators": [100, 200],
+            # "max_depth": [None, 50],
+            # "min_samples_split": [2, 3],
+            # "min_samples_leaf": [1, 2],
+            # "max_leaf_nodes": [None, 50],
         },
     },
     "LGBMClassifier": {
         "Model": LGBMClassifier(n_jobs=-1, random_state=common_constants.RANDOM),
         "Parameters": {
-            "boosting_type": ["gbdt", "rf"],
+            # "boosting_type": ["gbdt", "rf"],
             # "num_leaves": [31, 50],
             # "max_depth": [-1, 50],
             # "learning_rate": [0.1, 0.08],
-            "n_estimators": [100, 200],
+            # "n_estimators": [100, 200],
         },
     },
     "CatBoostClassifier": {
         "Model": CatBoostClassifier(random_seed=common_constants.RANDOM),
         "Parameters": {
-            "iterations": [200],
+            # "iterations": [200],
             # "learning_rate": [0.03, 0.08],
-            "depth": [6, 12],
+            # "depth": [6, 12],
             # "l2_leaf_reg": [1, 3],
             # "max_depth": [None, 50],
         },
@@ -182,11 +187,11 @@ model_dict = {
             n_jobs=-1, random_state=common_constants.RANDOM, verbosity=1
         ),
         "Parameters": {
-            "max_depth": [6, 12],
-            "max_leaves": [30, 50],
-            "learning_rate": [0.3, 0.1],
-            "n_estimators": [200],
-            "reg_lambda": [1, 3],
+            # "max_depth": [6, 12],
+            # "max_leaves": [30, 50],
+            # "learning_rate": [0.3, 0.1],
+            # "n_estimators": [200],
+            # "reg_lambda": [1, 3],
         },
     },
     "XGBRFClassifier": {
@@ -194,11 +199,11 @@ model_dict = {
             n_jobs=-1, random_state=common_constants.RANDOM, verbosity=1
         ),
         "Parameters": {
-            "max_depth": [6, 12],
-            "max_leaves": [30, 50],
-            "learning_rate": [0.3, 0.1],
-            "n_estimators": [200],
-            "reg_lambda": [1, 3],
+            # "max_depth": [6, 12],
+            # "max_leaves": [30, 50],
+            # "learning_rate": [0.3, 0.1],
+            # "n_estimators": [200],
+            # "reg_lambda": [1, 3],
         },
     },
     "TFNeuralNetwork": {

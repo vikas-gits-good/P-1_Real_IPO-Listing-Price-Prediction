@@ -5,6 +5,7 @@ __pycache__/
 
 # local folders
 logs/
+mlruns/
 Artifacts/
 catboost_info/
 src/Research/
