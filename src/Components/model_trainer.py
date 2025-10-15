@@ -1,4 +1,5 @@
 import mlflow
+import dagshub
 import functools
 import numpy as np
 from typing import List
@@ -7,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 from src.Logging.logger_train import logging
 from src.Exception.exception import CustomException
-from src.Constants import common_constants
+from src.Constants import common_constants, dagshub_constants
 from src.Constants.model_constants import model_dict, create_model
 from src.Entity.config_entity import ModelTrainerConfig
 from src.Entity.artifact_entity import DataTransformationArtifact, ModelTrainerArtifact
@@ -30,6 +31,11 @@ class ModelTrainer:
         try:
             self.data_transformation_artifact = artifact
             self.model_trainer_config = model_trainer_config
+            dagshub.init(
+                repo_owner=dagshub_constants.REPO_OWNER_NAME,
+                repo_name=dagshub_constants.REPO_NAME,
+                mlflow=True,
+            )
 
         except Exception as e:
             logging.info(f"Error: {e}")
@@ -41,6 +47,9 @@ class ModelTrainer:
         metrics: List[ClassificationMetricArtifact] = None,
     ) -> None:
         try:
+            mlflow.set_tracking_uri(
+                f"https://dagshub.com/{dagshub_constants.REPO_OWNER_NAME}/{dagshub_constants.REPO_NAME}.mlflow"
+            )
             with mlflow.start_run():
                 metrics_data = {
                     f"{dataset}_{score}": getattr(metric, score)
@@ -48,11 +57,11 @@ class ModelTrainer:
                     for score in ["f1_score", "precision_score", "recall_score"]
                 }
                 mlflow.log_metrics(metrics=metrics_data)
-                mlflow.sklearn.log_model(sk_model=model, name="model")
+                mlflow.sklearn.log_model(sk_model=model, artifact_path="model")
 
         except Exception as e:
-            logging.info(f"Error: {e}")
-            raise CustomException(e)
+            logging.info(f"Error in model_trainer.py: {e}")
+            # raise CustomException(e)
 
     def train_model(
         self,
@@ -64,11 +73,14 @@ class ModelTrainer:
         y_test: np.typing.NDArray = None,
     ) -> dict:
         try:
-            model_dict["TFNeuralNetwork"]["Model"] = KerasClassifier(
-                model=functools.partial(create_model, input_shape=(x_train.shape[1],)),
-                index=0,
-                random_state=common_constants.RANDOM,
-            )
+            if "TFNeuralNetwork" in model_dict.keys():
+                model_dict["TFNeuralNetwork"]["Model"] = KerasClassifier(
+                    model=functools.partial(
+                        create_model, input_shape=(x_train.shape[1],)
+                    ),
+                    index=0,
+                    random_state=common_constants.RANDOM,
+                )
 
             models_report = evaluate_models(
                 x_train, y_train, x_vald, y_vald, models=model_dict, sort_by="f1_score"
@@ -103,6 +115,13 @@ class ModelTrainer:
                 file_path=self.model_trainer_config.trained_model_file_path,
                 object=nm_object,
             )
+            save_model_object(
+                file_path="src/Final_Artifacts/ppln_prpc.pkl", object=ppln_prpc
+            )
+            save_model_object(
+                file_path="src/Final_Artifacts/final_model.pkl",
+                object=best_model_object,
+            )
 
             best_model_dict = {
                 "Model_name": best_model_name,
@@ -114,15 +133,6 @@ class ModelTrainer:
         except Exception as e:
             logging.info(f"Error: {e}")
             raise CustomException(e)
-
-    # def initialise(self) -> ModelTrainerArtifact:
-    #     try:
-    #         ...
-    #         pass
-
-    #     except Exception as e:
-    #         logging.info(f"Error: {e}")
-    #         raise CustomException(e)
 
     def initialise(self) -> ModelTrainerArtifact:
         try:

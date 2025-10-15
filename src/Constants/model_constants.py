@@ -25,7 +25,7 @@ from src.Constants import common_constants
 nn_arch_dict = {
     "neurons_layer_wise": [
         [16, 16, 16, 16, 6],
-        [32, 32, 32, 32, 6],
+        # [32, 32, 32, 32, 6],
         # [16, 32, 32, 16, 6],
         # [32, 16, 16, 32, 6],
         # [16, 32, 16, 32, 6],
@@ -34,12 +34,6 @@ nn_arch_dict = {
     ],
     "activation_layer_wise": [
         ["elu", "elu", "elu", "elu", "softmax"],
-        ["elu", "elu", "elu", "elu", "softmax"],
-        # ["elu", "elu", "elu", "elu", "softmax"],
-        # ["elu", "elu", "elu", "elu", "softmax"],
-        # ["elu", "elu", "elu", "elu", "softmax"],
-        # ["elu", "elu", "elu", "elu", "softmax"],
-        # ["elu", "elu", "elu", "elu", "softmax"],
     ],
 }
 
@@ -58,7 +52,7 @@ def create_model(
     metrics: List[Literal["accuracy", "mse", "mae"]] = ["accuracy"],
 ):
     neurons_layer_wise = nn_arch_dict["neurons_layer_wise"][index]
-    activation_layer_wise = nn_arch_dict["activation_layer_wise"][index]
+    activation_layer_wise = nn_arch_dict["activation_layer_wise"]  # [index]
 
     model = Sequential(
         [Input(shape=input_shape)]
@@ -162,26 +156,26 @@ model_dict = {
             # "max_leaf_nodes": [None, 50],
         },
     },
-    "LGBMClassifier": {
-        "Model": LGBMClassifier(n_jobs=-1, random_state=common_constants.RANDOM),
-        "Parameters": {
-            # "boosting_type": ["gbdt", "rf"],
-            # "num_leaves": [31, 50],
-            # "max_depth": [-1, 50],
-            # "learning_rate": [0.1, 0.08],
-            # "n_estimators": [100, 200],
-        },
-    },
-    "CatBoostClassifier": {
-        "Model": CatBoostClassifier(random_seed=common_constants.RANDOM),
-        "Parameters": {
-            # "iterations": [200],
-            # "learning_rate": [0.03, 0.08],
-            # "depth": [6, 12],
-            # "l2_leaf_reg": [1, 3],
-            # "max_depth": [None, 50],
-        },
-    },
+    # "LGBMClassifier": {
+    #     "Model": LGBMClassifier(n_jobs=-1, random_state=common_constants.RANDOM),
+    #     "Parameters": {
+    #         # "boosting_type": ["gbdt", "rf"],
+    #         # "num_leaves": [31, 50],
+    #         # "max_depth": [-1, 50],
+    #         # "learning_rate": [0.1, 0.08],
+    #         # "n_estimators": [100, 200],
+    #     },
+    # },
+    # "CatBoostClassifier": {
+    #     "Model": CatBoostClassifier(random_seed=common_constants.RANDOM),
+    #     "Parameters": {
+    #         # "iterations": [200],
+    #         # "learning_rate": [0.03, 0.08],
+    #         # "depth": [6, 12],
+    #         # "l2_leaf_reg": [1, 3],
+    #         # "max_depth": [None, 50],
+    #     },
+    # },
     "XGBClassifier": {
         "Model": XGBClassifier(
             n_jobs=-1, random_state=common_constants.RANDOM, verbosity=1
@@ -206,12 +200,12 @@ model_dict = {
             # "reg_lambda": [1, 3],
         },
     },
-    "TFNeuralNetwork": {
-        "Model": KerasClassifier(
-            model=create_model,
-            index=0,
-            random_state=common_constants.RANDOM,
-        ),
-        "Parameters": nn_param_grid,
-    },
+    # "TFNeuralNetwork": {
+    #     "Model": KerasClassifier(
+    #         model=create_model,
+    #         index=0,
+    #         random_state=common_constants.RANDOM,
+    #     ),
+    #     "Parameters": nn_param_grid,
+    # },
 }

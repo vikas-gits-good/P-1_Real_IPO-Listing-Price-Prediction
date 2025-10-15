@@ -66,3 +66,15 @@ class model_trainer:
     TRAINED_MODEL_NAME = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_model.pkl"
     TRAINED_MODEL_EXPECTED_SCORE = 0.7
     TRAINED_MODEL_BAD_FIT_THRESHOLD = 0.05
+
+
+@dataclass
+class dagshub_constants:
+    REPO_OWNER_NAME = "vikas-gits-good"
+    REPO_NAME = "P-1_Real_IPO-Listing-Price-Prediction"
+
+
+@dataclass
+class model_pusher:
+    FINAL_ARTIFACTS_DIR_NAME = "Final_Artifacts"
+    FINAL_ARTIFACTS_DIR_PATH = "src/Final_Artifacts"

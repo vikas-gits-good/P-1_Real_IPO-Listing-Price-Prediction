@@ -11,8 +11,6 @@ catboost
 tensorflow
 scikeras
 dotenv
-flask
-reflex
 beautifulsoup4
 smartapi-python
 pyotp
@@ -25,5 +23,8 @@ pymongo
 certifi
 scipy
 pyaml
-mlflow
+mlflow==2.22.0
+dagshub==0.5.10
+flask
+reflex
 # -e .
