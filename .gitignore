@@ -13,6 +13,7 @@ __pycache__/
 logs/
 assets/
 mlruns/
+ETL/
 Artifacts/
 Final_Artifacts/
 Reflex_Experiments/
@@ -20,7 +21,10 @@ catboost_info/
 src/Research/
 src/Secrets/
 src/Data/
-src/ETL/
+src/ETL/\
+node_modules/
+*package*.json
+# *server*.js
 
 # C extensions
 *.so

@@ -1,160 +1,110 @@
-import reflex as rx
-from reflex import html
+import os
+import json
+import threading
+import pandas as pd
+from glob import glob
+from flask import Flask, request, render_template, send_file, abort, jsonify
+
+from src.Logging.logger_pred import logging
+from src.Pipeline.training_pipeline import TrainIPOPrediction
+
+application = Flask(__name__)
+app = application
 
 
-# Sample data structure for IPO table rows
-ipo_data = [
-    {
-        "company_name": "Company A",
-        "ipo_open_date": "2025-01-01",
-        "ipo_close_date": "2025-01-10",
-        "qibb": 1000,
-        "nii": 500,
-        "retail_subscription": 300,
-        "gmp_value": 50,
-        "predicted_listing_gain": 15.2,
-        "actual_listing_gain": 17.5,
-    },
-    # Add more rows up to 20 for example
-]
-
-# Replicate more data for demo
-ipo_data *= 20
-ipo_data = ipo_data[:20]  # Limit to 20 rows
+@app.route("/api/logs/latest_pred")
+def get_latest_pred_log():
+    try:
+        pred_log_dir = os.path.abspath("./logs/pred")
+        log_files = glob(os.path.join(pred_log_dir, "*_pred.log"))
+        if not log_files:
+            return jsonify({"error": "No logs found"}), 404
+        # Sort files by modified time descending
+        log_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+        latest_log = os.path.basename(log_files[0])
+        return jsonify({"latest_log": latest_log})
+    except Exception as e:
+        logging.error(f"Error getting latest pred log: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
 
 
-class State(rx.State):
-    page_latest = 1
-    page_archive = 1
-    rows_per_page = 5
-
-    latest_data = ipo_data
-    archive_data = ipo_data
-
-    def retrain_model(self):
-        # Call your ML model retrain class here
-        print("Retraining model...")
-
-    def update_data(self):
-        # Code to update database data here
-        print("Updating data in DB...")
-
-    def predict_data(self):
-        # Re-predict data logic here
-        print("Re-predicting data...")
-
-    def change_page_latest(self, page):
-        self.page_latest = page
-
-    def change_page_archive(self, page):
-        self.page_archive = page
-
-    def paginated_data(self, tab: str):
-        if tab == "latest":
-            start = (self.page_latest - 1) * self.rows_per_page
-            end = start + self.rows_per_page
-            return self.latest_data[start:end]
-        else:
-            start = (self.page_archive - 1) * self.rows_per_page
-            end = start + self.rows_per_page
-            return self.archive_data[start:end]
+def run_training_background():
+    try:
+        logging.getLogger("werkzeug").setLevel(logging.ERROR)
+        TrainIPOPrediction().train()
+        logging.getLogger("werkzeug").setLevel(logging.INFO)
+    except Exception as e:
+        logging.error(f"Error in background retrain: {e}")
 
 
-def ipo_table(data):
-    return rx.table(
-        rx.table.thead(
-            rx.table.tr(
-                rx.table.th("Company Name"),
-                rx.table.th("IPO Open Date"),
-                rx.table.th("IPO Close Date"),
-                rx.table.th("QIBB"),
-                rx.table.th("NII"),
-                rx.table.th("Retail Subscription"),
-                rx.table.th("GMP Value"),
-                rx.table.th("Predicted Listing Gain"),
-                rx.table.th("Actual Listing Gain"),
-            )
-        ),
-        rx.table.tbody(
-            *[
-                rx.table.tr(
-                    rx.table.td(row["company_name"]),
-                    rx.table.td(row["ipo_open_date"]),
-                    rx.table.td(row["ipo_close_date"]),
-                    rx.table.td(str(row["qibb"])),
-                    rx.table.td(str(row["nii"])),
-                    rx.table.td(str(row["retail_subscription"])),
-                    rx.table.td(str(row["gmp_value"])),
-                    rx.table.td(str(row["predicted_listing_gain"])),
-                    rx.table.td(str(row["actual_listing_gain"])),
-                )
-                for row in data
-            ]
-        ),
-        style={
-            "width": "100%",
-            "border": "1px solid black",
-            "borderCollapse": "collapse",
-        },
-    )
+@app.route("/api/retrain")
+def retrain():
+    try:
+        logging.info("User Retrain: Started")
+        thread = threading.Thread(target=run_training_background)
+        thread.start()
+        return json.dumps({"status": "started"})
+    except Exception as e:
+        logging.error(f"Error in retrain(): {e}")
+        return abort(500, "Problem during retraining")
 
 
-def pagination_controls(tab: str):
-    def handle_click(page):
-        if tab == "latest":
-            return State.change_page_latest(page)
-        return State.change_page_archive(page)
+@app.route("/api/logs/content")
+def get_log_content():
+    try:
+        filename = request.args.get("file")
+        pred = request.args.get("pred", "false").lower() == "true"
+        if not filename:
+            return abort(400, "Missing file parameter")
 
-    pages = list(range(1, 5))  # Assuming 4 pages max for 20 rows and 5 rows/page
-    return rx.hstack(
-        *[
-            rx.button(
-                str(page),
-                on_click=lambda page=page: handle_click(page),
-                style={"margin": "2px"},
-            )
-            for page in pages
-        ]
-    )
+        log_dir = os.path.abspath("./logs/pred" if pred else "./logs/train")
+        file_path = os.path.abspath(os.path.join(log_dir, filename))
 
+        # Security check: file must be in log_dir
+        if not file_path.startswith(log_dir):
+            return abort(403, "Access denied")
 
-def latest_tab():
-    return rx.vstack(
-        rx.hstack(
-            rx.button("Retrain", on_click=State.retrain_model),
-            rx.button("Update", on_click=State.update_data),
-            rx.button("Predict", on_click=State.predict_data),
-        ),
-        ipo_table(State.paginated_data("latest")),
-        pagination_controls("latest"),
-    )
+        if not os.path.exists(file_path):
+            return abort(404, "File not found")
+
+        return send_file(file_path, mimetype="text/plain")
+
+    except Exception as e:
+        logging.info(f"Error in get_log_content(): {e}")
+        return abort(404, "File not found")
 
 
-def archive_tab():
-    return rx.vstack(
-        ipo_table(State.paginated_data("archive")),
-        pagination_controls("archive"),
-    )
+@app.route("/")
+def home():
+    df = pd.read_csv("./src/Data/InitialData/ipo_scrn_gmp_EQ.csv")
+    cols_list = [
+        "IPO_company_name",
+        "IPO_open_date",
+        "IPO_close_date",
+        "IPO_issue_price",
+        "IPO_lot_size",
+        "IPO_Broker_apply",
+        "IPO_Member_apply",
+        "IPO_day3_qib",
+        "IPO_day3_nii",
+        "IPO_day3_rtl",
+    ]
+    df_arch = df.iloc[:30, :].loc[:, cols_list]
+    df_lats = df.iloc[-30:, :].loc[:, cols_list]
+
+    archive_json = json.dumps(df_arch.to_dict(orient="records"))
+    latest_json = json.dumps(df_lats.to_dict(orient="records"))
+    log_files = glob("logs/train/*.log")
+    model_files = glob("Artifacts/*/model_trainer/trained_model/*_model.pkl")
+
+    data_to_html = {
+        "LatestData": latest_json,
+        "ArchiveData": archive_json,
+        "LogFiles": log_files,
+        "ModelFiles": model_files,
+    }
+    return render_template("index.html", data_dict=data_to_html)
 
 
-def index():
-    return rx.tabs.root(
-        rx.tabs.list(
-            rx.tabs.trigger("Latest", value="latest"),
-            rx.tabs.trigger("Archive", value="archive"),
-        ),
-        rx.tabs.content(
-            latest_tab(),
-            value="latest",
-        ),
-        rx.tabs.content(
-            archive_tab(),
-            value="archive",
-        ),
-        default_value="latest",
-    )
-
-
-app = rx.App(State)
-app.add_page(index)
-app._compile()
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)

@@ -26,6 +26,8 @@ class TrainIPOPrediction:
 
             logging.info(f"{'Model Pushing':-^{60}}")
 
+            logging.info("ML training completed!")
+
         except Exception as e:
             logging.info(f"Error: {e}")
             raise CustomException(e)
