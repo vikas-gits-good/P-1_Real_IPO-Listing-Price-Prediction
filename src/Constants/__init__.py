@@ -21,7 +21,9 @@ class common_constants:
 class mongo_db_dc:
     CLUSTER_NAME = "Cluster0"
     DATABASE_NAME = "RealWorldProjects"
-    COLLECTION_NAME = "IPOPred"
+    COLLECTION_NAME_MAIN = "IPOPredMain"
+    COLLECTION_NAME_ORIGINAL = "IPOPredOrig"
+    COLLECTION_NAME_TESTING = "IPOPredTest"
 
 
 @dataclass

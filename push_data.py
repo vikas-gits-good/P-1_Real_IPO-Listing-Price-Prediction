@@ -1,26 +1,17 @@
-import os
 import json
-import pymongo
-import certifi
+from pymongo import MongoClient
 import pandas as pd
-from dotenv import load_dotenv
 
 from src.Logging.logger_etl import logging
 from src.Exception.exception import CustomException
 from src.Constants import mongo_db_dc, data_ingestion, common_constants
-
-load_dotenv("src/Secrets/mongo_db.env")
-MONGO_DB_UN = os.getenv("MONGO_DB_UN")
-MONGO_DB_PW = os.getenv("MONGO_DB_PW")
-MONGO_DB_URL = f"mongodb+srv://{MONGO_DB_UN}:{MONGO_DB_PW}@cluster0.8y5aipc.mongodb.net/?retryWrites=true&w=majority&appName={mongo_db_dc.CLUSTER_NAME}"
-print(MONGO_DB_URL)
-ca = certifi.where()
+from src.Entity.config_entity import MongoDBConfig
 
 
 class IPODataExtract:
-    def __init__(self):
+    def __init__(self, db_config: MongoDBConfig = MongoDBConfig()):
         try:
-            pass
+            self.db_config = db_config
         except Exception as e:
             raise CustomException(e)
 
@@ -33,13 +24,13 @@ class IPODataExtract:
         except Exception as e:
             raise CustomException(e)
 
-    def insert_data_mongodb(self, records, database, collection):
+    def insert_data_mongodb(self, records):
         try:
-            self.database = database
-            self.collection = collection
+            self.database = self.db_config.database
+            self.collection = self.db_config.collection_orig  # <- Check before using
             self.records = records
 
-            self.mongo_client = pymongo.MongoClient(MONGO_DB_URL)
+            self.mongo_client = MongoClient(self.db_config.mongo_db_url)
             self.database = self.mongo_client[self.database]
 
             self.collection = self.database[self.collection]
@@ -51,12 +42,10 @@ class IPODataExtract:
 
 if __name__ == "__main__":
     FILE_PATH = f"{data_ingestion.DATA_DIR}/{common_constants.DATA_FILE_NAME}"
-    DATABASE = mongo_db_dc.DATABASE_NAME
-    Collection = mongo_db_dc.COLLECTION_NAME
     logging.info("ETL | Pushing Started")
     networkobj = IPODataExtract()
     records = networkobj.csv_to_json_convertor(file_path=FILE_PATH)
     print(records)
-    no_of_records = networkobj.insert_data_mongodb(records, DATABASE, Collection)
+    no_of_records = networkobj.insert_data_mongodb(records)
     logging.info("ETL | Pushing Finished")
     print(no_of_records)

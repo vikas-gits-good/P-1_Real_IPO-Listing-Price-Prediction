@@ -1,41 +1,36 @@
 import os
 import numpy as np
 import pandas as pd
-from dotenv import load_dotenv
 from pymongo import MongoClient
 
 from sklearn.model_selection import train_test_split
-# from skmultilearn.model_selection import iterative_train_test_split
-
 
 from src.Logging.logger_train import logging
 from src.Exception.exception import CustomException
-from src.Constants import common_constants, mongo_db_dc
-from src.Entity.config_entity import DataIngestionConfig
+from src.Constants import common_constants
+from src.Entity.config_entity import DataIngestionConfig, MongoDBConfig
 from src.Entity.artifact_entity import DataIngestionArtifact
 from src.Utils.main_utils import save_dataframe
-
-load_dotenv("src/Secrets/mongo_db.env")
-MONGO_DB_UN = os.getenv("MONGO_DB_UN")
-MONGO_DB_PW = os.getenv("MONGO_DB_PW")
-MONGO_DB_URL = f"mongodb+srv://{MONGO_DB_UN}:{MONGO_DB_PW}@cluster0.8y5aipc.mongodb.net/?retryWrites=true&w=majority&appName={mongo_db_dc.CLUSTER_NAME}"
 
 
 class DataIngestion:
     def __init__(
-        self, data_ingestion_config: DataIngestionConfig = DataIngestionConfig()
+        self,
+        data_ingestion_config: DataIngestionConfig = DataIngestionConfig(),
+        db_config: MongoDBConfig = MongoDBConfig(),
     ):
         try:
             self.data_ingestion_config = data_ingestion_config
+            self.db_config = db_config
         except Exception as e:
             logging.info(f"Error: {e}")
             raise CustomException(e)
 
     def get_dataframe(self) -> pd.DataFrame:
         try:
-            db_database_name = self.data_ingestion_config.database_name
-            db_collection_name = self.data_ingestion_config.collection_name
-            self.mongo_client = MongoClient(MONGO_DB_URL)
+            db_database_name = self.db_config.database
+            db_collection_name = self.db_config.collection_main
+            self.mongo_client = MongoClient(self.db_config.mongo_db_url)
             collections = self.mongo_client[db_database_name][db_collection_name]
             df = pd.DataFrame(list(collections.find()))
             df.drop_duplicates(inplace=True, ignore_index=True)

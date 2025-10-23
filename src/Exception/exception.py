@@ -1,13 +1,24 @@
 import sys
+import logging
 
 
+# For raising error
 class CustomException(Exception):
-    def __init__(self, error_msg, err_details: sys = sys):
-        self.error_msg = error_msg
-        _, _, exc_tb = err_details.exc_info()
-
+    def __init__(self, error: Exception = None):
+        _, _, exc_tb = sys.exc_info()
         self.lineno = exc_tb.tb_lineno
         self.file_name = exc_tb.tb_frame.f_code.co_filename
+        self.log_msg = f"Error: File - {self.file_name} , line - [{self.lineno}], error - [{str(error)}]"
 
     def __str__(self):
-        return f"Error: File - [{self.file_name}], line - [{self.lineno}], error - [{str(self.error_msg)}]"
+        return self.log_msg
+
+
+# For logging error
+def LogException(error: Exception = None, prefix: str = None):
+    _, _, exc_tb = sys.exc_info()
+    lineno = exc_tb.tb_lineno
+    file_name = exc_tb.tb_frame.f_code.co_filename
+    log_msg = f"Error: File - {file_name} , line - [{lineno}], error - [{str(error)}]"
+    log_msg = f"{prefix}: {log_msg}" if prefix else log_msg
+    logging.info(log_msg)

@@ -1,4 +1,5 @@
 import os
+import sys
 import yaml
 import pickle
 import numpy as np
@@ -12,6 +13,14 @@ from src.Logging.logger_train import logging
 from src.Exception.exception import CustomException
 from src.Utils.ml_utils import get_model_scores
 from src.Utils.estimator import NetworkModel
+
+
+def log_exception(error: Exception = None) -> logging:
+    _, _, exc_tb = sys.exc_info()
+    filename = exc_tb.tb_frame.f_code.co_filename
+    lineno = exc_tb.tb_lineno
+    log_msg = f"Error: File - [{filename}], line - [{lineno}], error - [{str(error)}]"
+    logging.info(log_msg)
 
 
 def save_dataframe(data: pd.DataFrame = None, path: str = None) -> None:

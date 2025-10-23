@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from dotenv import load_dotenv
 
 from src.Constants import (
     common_constants,
@@ -50,7 +51,7 @@ class DataIngestionConfig:
         )
         self.train_size = data_ingestion.TRAIN_SPLIT_RATIO
         self.test_size = data_ingestion.TEST_SPLIT_RATIO
-        self.collection_name = mongo_db_dc.COLLECTION_NAME
+        self.collection_name = mongo_db_dc.COLLECTION_NAME_MAIN
         self.database_name = mongo_db_dc.DATABASE_NAME
         self.random_state = common_constants.RANDOM
 
@@ -168,4 +169,35 @@ class ModelTrainerConfig:
 
 
 # for var, val in vars(ModelTrainerConfig()).items():
+#     print(f"{var}: {val}")
+
+
+class AngelOneConfig:
+    def __init__(self):
+        load_dotenv("src/Secrets/angel_one_historic.env")
+        self.ao_token_url = "https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json"
+        self.ao_api_key = os.getenv("ANGEL_ONE_API_KEY")
+        self.ao_client_id = os.getenv("ANGEL_ONE_CLIENT_ID")
+        self.ao_pin = os.getenv("ANGEL_ONE_PIN")
+        self.ao_qr_token = os.getenv("ANGEL_ONE_QR_TOKEN")
+        self.ao_token_df_save_path = "src/Secrets"
+
+
+# for var, val in vars(AngelOneConfig()).items():
+#     print(f"{var}: {val}")
+
+
+class MongoDBConfig:
+    def __init__(self):
+        load_dotenv("src/Secrets/mongo_db.env")
+        MONGO_DB_UN = os.getenv("MONGO_DB_UN")
+        MONGO_DB_PW = os.getenv("MONGO_DB_PW")
+        self.mongo_db_url = f"mongodb+srv://{MONGO_DB_UN}:{MONGO_DB_PW}@cluster0.8y5aipc.mongodb.net/?retryWrites=true&w=majority&appName={mongo_db_dc.CLUSTER_NAME}"
+        self.database = mongo_db_dc.DATABASE_NAME
+        self.collection_main = mongo_db_dc.COLLECTION_NAME_MAIN
+        self.collection_orig = mongo_db_dc.COLLECTION_NAME_ORIGINAL
+        self.collection_test = mongo_db_dc.COLLECTION_NAME_TESTING
+
+
+# for var, val in vars(MongoDBConfig()).items():
 #     print(f"{var}: {val}")
