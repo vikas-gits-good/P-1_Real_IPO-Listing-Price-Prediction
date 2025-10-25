@@ -21,8 +21,9 @@ catboost_info/
 src/Research/
 src/Secrets/
 src/Data/
-src/ETL/\
+src/ETL/
 node_modules/
+__pycache__/
 *package*.json
 # *server*.js
 

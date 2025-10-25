@@ -1,7 +1,7 @@
 import pandas as pd
 from scipy.stats import ks_2samp
 
-from src.Logging.logger_train import logging
+from src.Logging.logger import log_trn
 from src.Exception.exception import CustomException
 from src.Constants import data_validation
 from src.Entity.config_entity import DataValidationConfig
@@ -26,7 +26,7 @@ class DataValidation:
             self._schema_config = read_yaml_file(data_validation.SCHEMA_FILE_PATH)
 
         except Exception as e:
-            logging.info(f"Error: {e}")
+            log_trn.info(f"Error: {e}")
             raise CustomException(e)
 
     def validate_num_of_cols(self, data: pd.DataFrame = None) -> bool:
@@ -34,13 +34,13 @@ class DataValidation:
             if len(data.columns) == len(self._schema_config["columns"]):
                 return True
             else:
-                logging.info(
+                log_trn.info(
                     "Data Validation: Number of columns between dataset and schema are mismatched."
                 )
                 return False
 
         except Exception as e:
-            logging.info(f"Error: {e}")
+            log_trn.info(f"Error: {e}")
             raise CustomException(e)
 
     def validate_dtype_of_cols(self, data: pd.DataFrame = None) -> bool:
@@ -49,14 +49,14 @@ class DataValidation:
             schema_numr_cols = self._schema_config["numerical_columns"]
             missing_cols = set(schema_numr_cols) - set(data_numr_cols)
             if missing_cols:
-                logging.info(
+                log_trn.info(
                     f"Data Validation: These columns are missing from dataset. {missing_cols}"
                 )
                 return False
             return True
 
         except Exception as e:
-            logging.info(f"Error: {e}")
+            log_trn.info(f"Error: {e}")
             raise CustomException(e)
 
     def detect_data_drift(
@@ -97,7 +97,7 @@ class DataValidation:
                     }
                 )
 
-            logging.info("Data Validation: Writing data drift report to file")
+            log_trn.info("Data Validation: Writing data drift report to file")
             write_yaml_file(
                 file_path=report_path,
                 content=report,
@@ -106,13 +106,13 @@ class DataValidation:
             return status
 
         except Exception as e:
-            logging.info(f"Error: {e}")
+            log_trn.info(f"Error: {e}")
             raise CustomException(e)
 
     def initialise(self) -> DataValidationArtifact:
         try:
-            logging.info("Data Validation: Started")
-            logging.info("Data Validation: Getting ingested data from file")
+            log_trn.info("Data Validation: Started")
+            log_trn.info("Data Validation: Getting ingested data from file")
             df_train, df_vald, df_test = [
                 read_dataframe(path)
                 for path in [
@@ -122,7 +122,7 @@ class DataValidation:
                 ]
             ]
 
-            logging.info("Data Validation: Running validation scheme")
+            log_trn.info("Data Validation: Running validation scheme")
             (train_num, train_dtype), (vald_num, vald_dtype), (test_num, test_dtype) = [
                 (
                     self.validate_num_of_cols(data=df),
@@ -131,7 +131,7 @@ class DataValidation:
                 for df in [df_train, df_vald, df_test]
             ]
 
-            logging.info("Data Validation: Checking data drift")
+            log_trn.info("Data Validation: Checking data drift")
             vald_drift, test_drift = [
                 self.detect_data_drift(
                     base_df=df_train, current_df=df, report_path=path, threshold=0.05
@@ -171,8 +171,8 @@ class DataValidation:
             )
 
             if not final_status:
-                logging.info("Data Validation: Split data is INVALID. Please recheck")
-                logging.info("Data Validation: Saving INVALID data to file")
+                log_trn.info("Data Validation: Split data is INVALID. Please recheck")
+                log_trn.info("Data Validation: Saving INVALID data to file")
                 for data, path in (
                     (df_train, self.data_validation_config.invalid_train_data_path),
                     (df_vald, self.data_validation_config.invalid_vald_data_path),
@@ -181,7 +181,7 @@ class DataValidation:
                     save_dataframe(data=data, path=path)
 
             else:
-                logging.info("Data Validation: Saving validated data to file")
+                log_trn.info("Data Validation: Saving validated data to file")
                 for data, path in (
                     (df_train, self.data_validation_config.valid_train_data_path),
                     (df_vald, self.data_validation_config.valid_vald_data_path),
@@ -189,10 +189,10 @@ class DataValidation:
                 ):
                     save_dataframe(data=data, path=path)
 
-            logging.info("Data Validation: Exporting data validation artifact")
-            logging.info("Data Validation: Finished")
+            log_trn.info("Data Validation: Exporting data validation artifact")
+            log_trn.info("Data Validation: Finished")
             return dv_artf
 
         except Exception as e:
-            logging.info(f"Error: {e}")
+            log_trn.info(f"Error: {e}")
             raise CustomException(e)

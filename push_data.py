@@ -4,11 +4,11 @@ import pandas as pd
 
 from src.Logging.logger_etl import logging
 from src.Exception.exception import CustomException
-from src.Constants import mongo_db_dc, data_ingestion, common_constants
+from src.Constants import data_ingestion, common_constants
 from src.Entity.config_entity import MongoDBConfig
 
 
-class IPODataExtract:
+class IPODataPusher:
     def __init__(self, db_config: MongoDBConfig = MongoDBConfig()):
         try:
             self.db_config = db_config
@@ -43,7 +43,7 @@ class IPODataExtract:
 if __name__ == "__main__":
     FILE_PATH = f"{data_ingestion.DATA_DIR}/{common_constants.DATA_FILE_NAME}"
     logging.info("ETL | Pushing Started")
-    networkobj = IPODataExtract()
+    networkobj = IPODataPusher()
     records = networkobj.csv_to_json_convertor(file_path=FILE_PATH)
     print(records)
     no_of_records = networkobj.insert_data_mongodb(records)

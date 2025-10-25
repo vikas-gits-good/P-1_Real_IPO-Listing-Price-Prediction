@@ -180,7 +180,6 @@ class AngelOneConfig:
         self.ao_client_id = os.getenv("ANGEL_ONE_CLIENT_ID")
         self.ao_pin = os.getenv("ANGEL_ONE_PIN")
         self.ao_qr_token = os.getenv("ANGEL_ONE_QR_TOKEN")
-        self.ao_token_df_save_path = "src/Secrets"
 
 
 # for var, val in vars(AngelOneConfig()).items():

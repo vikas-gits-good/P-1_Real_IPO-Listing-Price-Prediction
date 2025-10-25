@@ -6,7 +6,7 @@ from typing import List
 from scikeras.wrappers import KerasClassifier
 from sklearn.ensemble import RandomForestClassifier
 
-from src.Logging.logger_train import logging
+from src.Logging.logger import log_trn
 from src.Exception.exception import CustomException
 from src.Constants import common_constants, dagshub_constants
 from src.Constants.model_constants import model_dict, create_model
@@ -38,7 +38,7 @@ class ModelTrainer:
             )
 
         except Exception as e:
-            logging.info(f"Error: {e}")
+            log_trn.info(f"Error: {e}")
             raise CustomException(e)
 
     def track_mlflow(
@@ -60,7 +60,7 @@ class ModelTrainer:
                 mlflow.sklearn.log_model(sk_model=model, artifact_path="model")
 
         except Exception as e:
-            logging.info(f"Error in model_trainer.py: {e}")
+            log_trn.info(f"Error in model_trainer.py: {e}")
             # raise CustomException(e)
 
     def train_model(
@@ -89,22 +89,22 @@ class ModelTrainer:
             best_model_object = models_report[best_model_name]["Model_object"]
             best_model_score = models_report[best_model_name]["Model_score"]
 
-            logging.info(
+            log_trn.info(
                 f"Model Training: Scoring best performing model '{best_model_name}' on test set"
             )
             y_pred_test = best_model_object.predict(x_test)
             best_model_score += [get_model_scores(y_true=y_test, y_pred=y_pred_test)]
 
-            logging.info(
+            log_trn.info(
                 f"Model Training: Using MLFlow to track {best_model_name}'s metrics"
             )
             self.track_mlflow(best_model_object, best_model_score)
 
-            logging.info(
+            log_trn.info(
                 f"Model Training: {best_model_name}'s test set scores: f1_score={best_model_score[2].f1_score:.4f}, precision_score={best_model_score[2].precision_score:.4f}, recall_score={best_model_score[2].recall_score:.4f}"
             )
 
-            logging.info(
+            log_trn.info(
                 f"Model Training: Saving best fit '{best_model_name}' model to file"
             )
             ppln_prpc = read_transformation_object(
@@ -131,13 +131,13 @@ class ModelTrainer:
             return best_model_dict
 
         except Exception as e:
-            logging.info(f"Error: {e}")
+            log_trn.info(f"Error: {e}")
             raise CustomException(e)
 
     def initialise(self) -> ModelTrainerArtifact:
         try:
-            logging.info("Model Training: Started")
-            logging.info("Model Training: Getting transformed data from file")
+            log_trn.info("Model Training: Started")
+            log_trn.info("Model Training: Getting transformed data from file")
             ary_train, ary_vald, ary_test = [
                 read_numpy_array(path)
                 for path in [
@@ -158,10 +158,10 @@ class ModelTrainer:
                 metric_artf_vald_set=bm_dict["Model_score"][1],
                 metric_artf_test_set=bm_dict["Model_score"][2],
             )
-            logging.info("Model Training: Exporting model trainer artifact")
-            logging.info("Model Training: Finished")
+            log_trn.info("Model Training: Exporting model trainer artifact")
+            log_trn.info("Model Training: Finished")
             return mt_artf
 
         except Exception as e:
-            logging.info(f"Error: {e}")
+            log_trn.info(f"Error: {e}")
             raise CustomException(e)

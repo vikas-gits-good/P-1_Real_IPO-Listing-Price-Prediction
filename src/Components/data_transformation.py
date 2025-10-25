@@ -8,7 +8,7 @@ from sklearn.preprocessing import FunctionTransformer, PowerTransformer
 from sklearn.impute import KNNImputer
 
 
-from src.Logging.logger_train import logging
+from src.Logging.logger import log_trn
 from src.Exception.exception import CustomException
 from src.Constants import common_constants, data_transformation
 from src.Entity.config_entity import DataTransformationConfig
@@ -34,7 +34,7 @@ class DataTransformation:
             self.data_transformation_config = data_transformation_config
 
         except Exception as e:
-            logging.info(f"Error: {e}")
+            log_trn.info(f"Error: {e}")
             raise CustomException(e)
 
     def create_gmp_columns(self, data: pd.DataFrame = None) -> None:
@@ -114,7 +114,7 @@ class DataTransformation:
             return df
 
         except Exception as e:
-            logging.info(f"Error: {e}")
+            log_trn.info(f"Error: {e}")
             raise CustomException(e)
 
     def create_pipeline_object(self, columns: List[str] = None) -> Pipeline:
@@ -150,13 +150,13 @@ class DataTransformation:
             return ppln_prpc
 
         except Exception as e:
-            logging.info(f"Error: {e}")
+            log_trn.info(f"Error: {e}")
             raise CustomException(e)
 
     def initialise(self) -> DataTransformationArtifact:
         try:
-            logging.info("Data Transformation: Started")
-            logging.info("Data Transformation: Getting validated data from file")
+            log_trn.info("Data Transformation: Started")
+            log_trn.info("Data Transformation: Getting validated data from file")
             df_train, df_vald, df_test = [
                 read_dataframe(path)
                 for path in [
@@ -178,7 +178,7 @@ class DataTransformation:
                 for series in [y_train, y_vald, y_test]
             ]
 
-            logging.info("Data Transformation: Creating transformation pipeline object")
+            log_trn.info("Data Transformation: Creating transformation pipeline object")
             impt_cols = [
                 "IPO_face_value",
                 "IPO_issue_price",
@@ -193,7 +193,7 @@ class DataTransformation:
             ]
             ppln_prpc = self.create_pipeline_object(columns=impt_cols)
 
-            logging.info("Data Transformation: Transforming datasets")
+            log_trn.info("Data Transformation: Transforming datasets")
             ppln_prpc.fit(x_train)
             x_train_1, x_vald_1, x_test_1 = [
                 ppln_prpc.transform(x) for x in [x_train, x_vald, x_test]
@@ -207,13 +207,13 @@ class DataTransformation:
                 ]
             ]
 
-            logging.info("Data Transformation: Saving fitted pipeline object to file")
+            log_trn.info("Data Transformation: Saving fitted pipeline object to file")
             save_transformation_object(
                 file_path=self.data_transformation_config.trfm_object_file_path,
                 object=ppln_prpc,
             )
 
-            logging.info("Data Transformation: Saving transformed datasets to file")
+            log_trn.info("Data Transformation: Saving transformed datasets to file")
             [
                 save_numpy_array(file_path=path, array=data)
                 for data, path in [
@@ -233,10 +233,10 @@ class DataTransformation:
                 transformed_test_file_path=self.data_transformation_config.trfm_test_file_path,
             )
 
-            logging.info("Data Transformation: Exporting data transformation artifact")
-            logging.info("Data Transformation: Finished")
+            log_trn.info("Data Transformation: Exporting data transformation artifact")
+            log_trn.info("Data Transformation: Finished")
             return dt_artf
 
         except Exception as e:
-            logging.info(f"Error: {e}")
+            log_trn.info(f"Error: {e}")
             raise CustomException(e)

@@ -1,5 +1,4 @@
 import os
-import sys
 import yaml
 import pickle
 import numpy as np
@@ -9,37 +8,32 @@ from typing import Literal
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 
-from src.Logging.logger_train import logging
+from logging import Logger
+from src.Logging.logger import log_trn
 from src.Exception.exception import CustomException
 from src.Utils.ml_utils import get_model_scores
 from src.Utils.estimator import NetworkModel
 
 
-def log_exception(error: Exception = None) -> logging:
-    _, _, exc_tb = sys.exc_info()
-    filename = exc_tb.tb_frame.f_code.co_filename
-    lineno = exc_tb.tb_lineno
-    log_msg = f"Error: File - [{filename}], line - [{lineno}], error - [{str(error)}]"
-    logging.info(log_msg)
-
-
-def save_dataframe(data: pd.DataFrame = None, path: str = None) -> None:
+def save_dataframe(
+    data: pd.DataFrame = None, path: str = None, log_name: Logger = log_trn
+) -> None:
     try:
         dir_path = os.path.dirname(path)
         os.makedirs(dir_path, exist_ok=True)
         data.to_csv(path, header=True, index=False)
 
     except Exception as e:
-        logging.info(f"Error: {e}")
+        log_name.info(f"Error: {e}")
         raise CustomException(e)
 
 
-def read_dataframe(path: str = None) -> pd.DataFrame:
+def read_dataframe(path: str = None, log_name: Logger = log_trn) -> pd.DataFrame:
     try:
         return pd.read_csv(path)
 
     except Exception as e:
-        logging.info(f"Error: {e}")
+        log_name.info(f"Error: {e}")
         raise CustomException(e)
 
 
@@ -55,7 +49,7 @@ def write_yaml_file(
             yaml.dump(content, file)
 
     except Exception as e:
-        logging.info(f"Error: {e}")
+        log_trn.info(f"Error: {e}")
         raise CustomException(e)
 
 
@@ -65,7 +59,7 @@ def read_yaml_file(file_path: str = None) -> dict:
             return yaml.safe_load(file)
 
     except Exception as e:
-        logging.info(f"Error: {e}")
+        log_trn.info(f"Error: {e}")
         raise CustomException(e)
 
 
@@ -77,7 +71,7 @@ def save_numpy_array(file_path: str = None, array: np.typing.NDArray = None) -> 
             np.save(file, array)
 
     except Exception as e:
-        logging.info(f"Error: {e}")
+        log_trn.info(f"Error: {e}")
         raise CustomException(e)
 
 
@@ -87,7 +81,7 @@ def read_numpy_array(file_path: str = None) -> np.typing.NDArray:
             return np.load(file, allow_pickle=True)
 
     except Exception as e:
-        logging.info(f"Error: {e}")
+        log_trn.info(f"Error: {e}")
         raise CustomException(e)
 
 
@@ -99,7 +93,7 @@ def save_transformation_object(file_path: str = None, object: Pipeline = None) -
             pickle.dump(object, file)
 
     except Exception as e:
-        logging.info(f"Error: {e}")
+        log_trn.info(f"Error: {e}")
         raise CustomException(e)
 
 
@@ -109,7 +103,7 @@ def read_transformation_object(file_path: str = None) -> Pipeline:
             return pickle.load(file)
 
     except Exception as e:
-        logging.info(f"Error: {e}")
+        log_trn.info(f"Error: {e}")
         raise CustomException(e)
 
 
@@ -121,7 +115,7 @@ def save_model_object(file_path: str = None, object: NetworkModel = None) -> Non
             pickle.dump(object, file)
 
     except Exception as e:
-        logging.info(f"Error: {e}")
+        log_trn.info(f"Error: {e}")
         raise CustomException(e)
 
 
@@ -131,7 +125,7 @@ def read_model_object(file_path: str = None) -> NetworkModel:
             return pickle.load(file)
 
     except Exception as e:
-        logging.info(f"Error: {e}")
+        log_trn.info(f"Error: {e}")
         raise CustomException(e)
 
 
@@ -150,7 +144,7 @@ def evaluate_models(
             model_object = models[model_name]["Model"]
             model_params = models[model_name]["Parameters"]
 
-            logging.info(f"Model Training: Training '{model_name}' model")
+            log_trn.info(f"Model Training: Training '{model_name}' model")
             gs = GridSearchCV(
                 estimator=model_object,
                 param_grid=model_params,
@@ -160,7 +154,7 @@ def evaluate_models(
             )
             gs.fit(X=x_train, y=y_train)
 
-            logging.info(f"Model Training: Scoring best fit '{model_name}' model")
+            log_trn.info(f"Model Training: Scoring best fit '{model_name}' model")
             y_pred_train, y_pred_vald = [gs.predict(x) for x in [x_train, x_vald]]
             scores_train, scores_vald = [
                 get_model_scores(y_true, y_pred)
@@ -169,7 +163,7 @@ def evaluate_models(
                     (y_vald, y_pred_vald),
                 ]
             ]
-            logging.info(
+            log_trn.info(
                 f"Model Training: train_{sort_by}={getattr(scores_train, sort_by):.4f} & vald_{sort_by}={getattr(scores_vald, sort_by):.4f}"
             )
             report[model_name] = {
@@ -177,7 +171,7 @@ def evaluate_models(
                 "Model_score": [scores_train, scores_vald],
             }
         # reorder the dictionary in the descending order of validation set score
-        logging.info("Model Training: Exporting evaluated best fit models")
+        log_trn.info("Model Training: Exporting evaluated best fit models")
         report_sorted = dict(
             sorted(
                 report.items(),
@@ -188,5 +182,5 @@ def evaluate_models(
         return report_sorted
 
     except Exception as e:
-        logging.info(f"Error: {e}")
+        log_trn.info(f"Error: {e}")
         raise CustomException(e)
