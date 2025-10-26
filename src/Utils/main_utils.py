@@ -1,18 +1,24 @@
 import os
 import yaml
+import json
 import pickle
 import numpy as np
 import pandas as pd
 from typing import Literal
+from datetime import datetime
+from pymongo import MongoClient, UpdateOne
+from dateutil.relativedelta import relativedelta
 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 
 from logging import Logger
-from src.Logging.logger import log_trn
+from src.Logging.logger import log_etl, log_trn, log_prd
 from src.Exception.exception import CustomException
 from src.Utils.ml_utils import get_model_scores
 from src.Utils.estimator import NetworkModel
+from src.Entity.config_entity import MongoDBConfig
+from src.Constants import mongo_db_dc
 
 
 def save_dataframe(
@@ -123,6 +129,143 @@ def read_model_object(file_path: str = None) -> NetworkModel:
     try:
         with open(file_path, "rb") as file:
             return pickle.load(file)
+
+    except Exception as e:
+        log_trn.info(f"Error: {e}")
+        raise CustomException(e)
+
+
+def get_df_from_MongoDB(
+    collection: Literal[
+        "IPOPredMain", "IPOPredOrig", "IPOPredTest", "IPOPredArcv"
+    ] = "IPOPredMain",
+    pipeline: Literal["train", "predict", "archive", "latest"] = "train",
+    db_config: MongoDBConfig = MongoDBConfig(),
+    log: Logger = log_trn,
+    prefix: Literal["Data Ingestion", "Prediction", "Webpage"] = "Data Ingestion",
+) -> pd.DataFrame:
+    try:
+        database_name = db_config.database
+        log.info(f"{prefix}: Communicating with MongoDB: {database_name}/{collection}")
+        mongo_client = MongoClient(db_config.mongo_db_url)
+        collections = mongo_client[database_name][collection]
+        # today = datetime(2025, 9, 5)
+        today = pd.to_datetime(datetime.today())
+
+        log.info(f"{prefix}: Preprocessing dataframe")
+        df = pd.DataFrame(list(collections.find()))
+        df.drop_duplicates(inplace=True, ignore_index=True)
+        if "_id" in df.columns:
+            df.drop(columns=["_id"], inplace=True)
+        df.replace({"na": np.nan}, inplace=True)
+
+        if pipeline == "train":
+            log.info(f"{prefix}: Dropping unlisted company data")
+            df = df.dropna(subset=["IPO_listing_price"], ignore_index=True)
+            df = df.loc[df["IPO_day2_qib"] != "error", :]
+
+            last_month = today - relativedelta(months=1)
+            end_date = last_month.replace(day=1)
+
+            log.info(f"{prefix}: Selecting data till {end_date.strftime('%Y %B')}.")
+            df["IPO_open_date"] = pd.to_datetime(
+                df["IPO_open_date"], errors="raise", format="%Y-%m-%d"
+            )
+            month_filt = df["IPO_open_date"] < end_date
+            df = df.loc[month_filt, :]
+            df["IPO_open_date"] = df["IPO_open_date"].dt.strftime("%Y-%m-%d")
+
+        elif pipeline == "predict":
+            log.info(f"{prefix}: Selecting {today.strftime('%Y %B')}'s company data")
+            # skip prediction for columns whose subscription data is unavailable
+            # might extend this later to other columns like gmp as well
+            df = df.loc[df["IPO_day2_qib"] != "error", :]
+            df["IPO_open_date"] = pd.to_datetime(df["IPO_open_date"], errors="coerce")
+            month_filt = (df["IPO_open_date"].dt.year == today.year) & (
+                df["IPO_open_date"].dt.month == today.month
+            )
+            df = df.loc[month_filt, :]
+            df["IPO_open_date"] = df["IPO_open_date"].dt.strftime("%Y-%m-%d")
+
+        elif pipeline == "archive":
+            # only get data from 01-09-2025 to last months
+            last_month = today - relativedelta(months=1)
+            start_date = pd.to_datetime("2025-09-01")
+            end_date = last_month.replace(day=1) + relativedelta(months=1)
+
+            log.info(
+                f"{prefix}: Selecting {start_date.strftime('%Y %B')} to {end_date.strftime('%Y %B')} company data"
+            )
+            df["IPO_open_date"] = pd.to_datetime(
+                df["IPO_open_date"], errors="raise", format="%Y-%m-%d"
+            )
+            month_filt = (df["IPO_open_date"] >= start_date) & (
+                df["IPO_open_date"] < end_date
+            )
+            df = df.loc[month_filt, :]
+            df["IPO_open_date"] = df["IPO_open_date"].dt.strftime("%Y-%m-%d")
+
+        elif pipeline == "latest":
+            log.info(f"{prefix}: Selecting {today.strftime('%Y %B')}'s company data")
+            df["IPO_open_date"] = pd.to_datetime(
+                df["IPO_open_date"], errors="raise", format="%Y-%m-%d"
+            )
+            month_filt = (df["IPO_open_date"].dt.year == today.year) & (
+                df["IPO_open_date"].dt.month == today.month
+            )
+            df = df.loc[month_filt, :]
+            df["IPO_open_date"] = df["IPO_open_date"].dt.strftime("%Y-%m-%d")
+
+        df.reset_index(drop=True, inplace=True)
+        return df
+
+    except Exception as e:
+        log_trn.info(f"Error: {e}")
+        raise CustomException(e)
+
+
+def df_to_json(data: pd.DataFrame = None) -> json.JSONEncoder:
+    try:
+        df = data.copy()
+        df.reset_index(drop=True, inplace=True)
+        records = list(json.loads(df.T.to_json()).values())
+        return records
+
+    except Exception as e:
+        log_trn.info(f"Error: {e}")
+        raise CustomException(e)
+
+
+def put_df_to_MongoDB(
+    data: pd.DataFrame = None,
+    collection: Literal[
+        "IPOPredMain", "IPOPredOrig", "IPOPredTest", "IPOPredArcv"
+    ] = "IPOPredMain",
+    db_config: MongoDBConfig = MongoDBConfig(),
+    log: Logger = log_etl,
+    prefix: Literal["Loading", "Prediction"] = "Loading",
+) -> pd.DataFrame:
+    try:
+        log.info(f"{prefix}: Converting dataframe to required format")
+        records = df_to_json(data)
+
+        db_database_name = db_config.database
+        log.info(
+            f"{prefix}: Communicating with MongoDB: {db_database_name}/{collection}"
+        )
+        db_collection_name = collection
+        mongo_client = MongoClient(db_config.mongo_db_url)
+        collections = mongo_client[db_database_name][db_collection_name]
+
+        log.info(f"{prefix}: Preparing data upload/update operations")
+        operations = []
+        for record in records:
+            filter_query = {"IPO_company_name": record.get("IPO_company_name")}
+            operations.append(UpdateOne(filter_query, {"$set": record}, upsert=True))
+
+        if operations:
+            log.info(f"{prefix}: Uploading data to '{db_database_name}/{collection}'")
+            collections.bulk_write(operations)
 
     except Exception as e:
         log_trn.info(f"Error: {e}")

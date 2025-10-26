@@ -196,7 +196,6 @@ class MongoDBConfig:
         self.collection_main = mongo_db_dc.COLLECTION_NAME_MAIN
         self.collection_orig = mongo_db_dc.COLLECTION_NAME_ORIGINAL
         self.collection_test = mongo_db_dc.COLLECTION_NAME_TESTING
-        self.collection_pred_crnt = mongo_db_dc.COLLECTION_NAME_PREDICT_CURRENT
         self.collection_pred_arcv = mongo_db_dc.COLLECTION_NAME_PREDICT_ARCHIVE
 
 

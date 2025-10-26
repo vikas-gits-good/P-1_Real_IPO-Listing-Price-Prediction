@@ -261,7 +261,7 @@
 <div id="Archive" class="tab-content">
   <div class="latest-controls" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
     <div>
-      <div class="placeholder-text" id="archive-line1">IPO listings from {{ data_dict.PrevMonth }}, {{ data_dict.PrevYear }} to July, 2012.</div>
+      <div class="placeholder-text" id="archive-line1">IPO listings from {{ data_dict.PrevMonth }}, {{ data_dict.PrevYear }} to September, 2025.</div>
       <div class="placeholder-text" id="archive-line2"></div>
     </div>
   </div>
@@ -354,6 +354,7 @@ const availableLogs = {{ data_dict.LogFiles | tojson | safe }};
 const etlLogs = {{ data_dict.EtlLogFiles | tojson | safe }};
 const prdLogs = {{ data_dict.PrdLogFile | tojson | safe }};
 const modelFiles = {{ data_dict.ModelFiles | tojson | safe }};
+const predictColumns = {{ data_dict.PredCols | tojson | safe }}
 
 
 function getFilename(path) {
@@ -429,41 +430,34 @@ function renderTablePage(data, tableId, paginationId, page) {
 }
 
 
-// Render Predict table showing only first 2 and last 2 columns
+// Render Predict table showing only required columns
 function renderPredictTablePage(page) {
   const table = document.getElementById('predictTable');
   const pagination = document.getElementById('predictPagination');
   const startIndex = (page - 1) * rowsPerPage;
   const endIndex = Math.min(startIndex + rowsPerPage, latestData.length);
 
-
   const theadTr = table.querySelector('thead tr');
   const tbody = table.querySelector('tbody');
   theadTr.innerHTML = "";
   tbody.innerHTML = "";
-
 
   if (latestData.length === 0) {
     theadTr.innerHTML = "<th>No data available</th>";
     return;
   }
 
+  // Use predictColumns instead of slicing keys automatically
+  const keysToShow = predictColumns;
 
-  // Determine keys and filter columns: first 2 and last 2 only
-  const allKeys = Object.keys(latestData[0]);
-  const keysToShow = [];
-  for(let i=0; i < allKeys.length; i++){
-    if(i < 2 || i >= allKeys.length - 2) keysToShow.push(allKeys[i]);
-  }
-
-
+  // Create table headers from predictColumns
   keysToShow.forEach(key => {
     const th = document.createElement('th');
     th.textContent = key;
     theadTr.appendChild(th);
   });
 
-
+  // Render rows using keysToShow columns
   for (let i = startIndex; i < endIndex; i++) {
     const row = document.createElement('tr');
     keysToShow.forEach(k => {
@@ -474,7 +468,7 @@ function renderPredictTablePage(page) {
     tbody.appendChild(row);
   }
 
-
+  // Pagination rendering
   pagination.innerHTML = "";
   const totalPages = Math.ceil(latestData.length / rowsPerPage);
   for (let p = 1; p <= totalPages; p++) {
@@ -488,6 +482,7 @@ function renderPredictTablePage(page) {
     pagination.appendChild(link);
   }
 }
+
 
 
 function renderLatestTablePage(page) {

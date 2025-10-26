@@ -4,7 +4,6 @@ import logging
 import asyncio
 import calendar
 import threading
-import pandas as pd
 from glob import glob
 from typing import Literal
 from datetime import datetime
@@ -13,6 +12,7 @@ from flask import Flask, request, render_template, send_file, abort, jsonify
 from src.Logging.logger import log_etl, log_trn, log_prd, log_flk
 from src.Exception.exception import CustomException, LogException
 
+from src.Utils.main_utils import get_df_from_MongoDB
 from src.ETL.ETL_main import ETLPipeline
 from src.Pipeline.training_pipeline import TrainIPOPrediction
 from src.Pipeline.prediction_pipeline import MakeIPOPrediction
@@ -20,7 +20,8 @@ from src.Pipeline.prediction_pipeline import MakeIPOPrediction
 
 class AplcOps:
     def __init__(
-        self, pipeline: Literal["etl", "train", "pred"] = "etl", pred_file_path=None
+        self,
+        pipeline: Literal["etl", "train", "pred"] = "etl",
     ):
         self.log_path = f"./logs/{pipeline}"
         self.log_file = f"*_{pipeline}.log"
@@ -30,7 +31,7 @@ class AplcOps:
         self.function = {
             "etl": ETLPipeline().run,
             "train": TrainIPOPrediction().train,  # <- Dont call here ()
-            "pred": MakeIPOPrediction().predict,  # <- Use ops_prd.get_pred_func() to get callable
+            "pred": MakeIPOPrediction().predict,
         }.get(pipeline, ETLPipeline().run)
 
     def get_latest_log(self):
@@ -113,60 +114,89 @@ class UtilOps:
             LogException(e)
             return abort(404, "File not found")
 
-    def home(self):
-        log_prd.info(f"{'Initialise':-^{60}}")
-        log_prd.info("Initialising data to display")
-        df = pd.read_csv("src/Data/InitialData/ipo_scrn_gmp_EQ.csv")
-        cols_list = [
-            "IPO_company_name",
-            "IPO_open_date",
-            "IPO_close_date",
-            "IPO_issue_price",
-            "IPO_lot_size",
-            "IPO_Broker_apply",
-            "IPO_Member_apply",
-            "IPO_day3_qib",
-            "IPO_day3_nii",
-            "IPO_day3_rtl",
+    @staticmethod
+    def get_files():
+        etl_log_files = glob("logs/etl/*_etl.log")
+        trn_log_files = glob("logs/train/*_train.log")
+        prd_log_files = glob("logs/pred/*_pred.log")
+        trn_mdl_files = glob("Artifacts/*/model_trainer/trained_model/*_model.pkl")
+
+        log_prd.info("Sorting files by date")
+        # sort by date in name [:19] -> '%Y-%m-%d_%H-%M-%S'
+        etl_log_files, trn_log_files, prd_log_files, trn_mdl_files = [
+            sorted(file_list, key=lambda x: os.path.basename(x)[:19], reverse=True)
+            for file_list in (
+                etl_log_files,
+                trn_log_files,
+                prd_log_files,
+                trn_mdl_files,
+            )
         ]
-        df_arch = df.iloc[:30, :].loc[:, cols_list]
-        df_lats = df.iloc[-30:, :].loc[:, cols_list]
 
-        archive_json = json.dumps(df_arch.to_dict(orient="records"))
-        latest_json = json.dumps(df_lats.to_dict(orient="records"))
+        log_prd.info("Removing empty files from list")
+        etl_log_files, trn_log_files, prd_log_files, trn_mdl_files = [
+            [item for item in file_list if os.path.getsize(item) > 0]
+            for file_list in (
+                etl_log_files,
+                trn_log_files,
+                prd_log_files,
+                trn_mdl_files,
+            )
+        ]
+        return etl_log_files, trn_log_files, prd_log_files, trn_mdl_files
 
-        def get_files():
-            log_prd.info("Getting log files and model files")
-            etl_log_files = glob("logs/etl/*_etl.log")
-            trn_log_files = glob("logs/train/*_train.log")
-            prd_log_files = glob("logs/pred/*_pred.log")
-            trn_mdl_files = glob("Artifacts/*/model_trainer/trained_model/*_model.pkl")
+    def home(self):
+        log_flk.info(f"{'Initialise Webpage':-^{60}}")
+        log_flk.info("Webpage: Getting log files and model files")
+        etl_log_files, trn_log_files, prd_log_files, trn_mdl_files = UtilOps.get_files()
 
-            log_prd.info("Sorting files by date")
-            # sort by date in name [:19] -> '%Y-%m-%d_%H-%M-%S'
-            etl_log_files, trn_log_files, prd_log_files, trn_mdl_files = [
-                sorted(file_list, key=lambda x: os.path.basename(x)[:19], reverse=True)
-                for file_list in (
-                    etl_log_files,
-                    trn_log_files,
-                    prd_log_files,
-                    trn_mdl_files,
-                )
-            ]
+        log_flk.info("Webpage: Getting data to display on Latest and Predict tabs")
+        df_ltst = get_df_from_MongoDB(
+            collection="IPOPredArcv", pipeline="latest", log=log_flk, prefix="Webpage"
+        )
+        log_flk.info("Webpage: Getting data to display on Archive tab")
+        df_arcv = get_df_from_MongoDB(
+            collection="IPOPredArcv", pipeline="archive", log=log_flk, prefix="Webpage"
+        )
 
-            log_prd.info("Removing empty files from list")
-            etl_log_files, trn_log_files, prd_log_files, trn_mdl_files = [
-                [item for item in file_list if os.path.getsize(item) > 0]
-                for file_list in (
-                    etl_log_files,
-                    trn_log_files,
-                    prd_log_files,
-                    trn_mdl_files,
-                )
-            ]
-            return etl_log_files, trn_log_files, prd_log_files, trn_mdl_files
+        # create a new gmp column with the latest gmp data
+        cols_gmp = [f"day{i}_price" for i in range(1, 34)]
+        df_ltst["latest_gmp_price"] = df_ltst[cols_gmp].bfill(axis=1).iloc[:, 0]
+        df_arcv["latest_gmp_price"] = df_arcv[cols_gmp].bfill(axis=1).iloc[:, 0]
 
-        etl_log_files, trn_log_files, prd_log_files, trn_mdl_files = get_files()
+        cols_pred = [
+            "Company",
+            "GMP",
+            "Listing Price",
+            "Listing gain (%)",
+            "Predicted Listing gain (%)",
+        ]
+        cols_ltst = cols_arcv = {
+            "IPO_company_name": "Company",
+            "IPO_open_date": "Open Date",
+            "IPO_close_date": "Close Date",
+            "IPO_list_date": "Listing Date",
+            "IPO_issue_price": "Issue Price",
+            "IPO_lot_size": "Lot size",
+            "IPO_day3_qib": "QIB",
+            "IPO_day3_nii": "NII",
+            "IPO_day3_rtl": "Retail",
+            "latest_gmp_price": "GMP",
+            "IPO_listing_price": "Listing Price",
+            "IPO_listing_gain_percentage": "Listing gain (%)",
+            "Predicted_IPO_listing_gain_category": "Predicted Listing gain (%)",
+        }
+        # Filter the required data to show
+        df_ltst = df_ltst[list(cols_ltst.keys())]
+        df_arcv = df_arcv[list(cols_arcv.keys())]
+
+        # rename the columns
+        df_ltst = df_ltst.rename(columns=cols_arcv)
+        df_arcv = df_arcv.rename(columns=cols_arcv)
+
+        # convert the data format to json
+        latest_json = json.dumps(df_ltst.to_dict(orient="records"))
+        archive_json = json.dumps(df_arcv.to_dict(orient="records"))
 
         # current month, year and previous month, year data as string
         today = datetime.today()
@@ -187,6 +217,7 @@ class UtilOps:
             "CrntYear": this_year_name,
             "PrevMonth": prev_month_name,
             "PrevYear": prev_year_name,
+            "PredCols": cols_pred,
         }
         return render_template("index.html", data_dict=data_to_html)
 

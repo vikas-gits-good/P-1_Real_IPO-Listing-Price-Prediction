@@ -9,7 +9,7 @@ from src.Exception.exception import CustomException
 from src.Constants import common_constants
 from src.Entity.config_entity import DataIngestionConfig, MongoDBConfig
 from src.Entity.artifact_entity import DataIngestionArtifact
-from src.Utils.main_utils import save_dataframe
+from src.Utils.main_utils import save_dataframe, get_df_from_MongoDB
 
 
 class DataIngestion:
@@ -21,24 +21,6 @@ class DataIngestion:
         try:
             self.data_ingestion_config = data_ingestion_config
             self.db_config = db_config
-        except Exception as e:
-            log_trn.info(f"Error: {e}")
-            raise CustomException(e)
-
-    def get_dataframe(self) -> pd.DataFrame:
-        try:
-            db_database_name = self.db_config.database
-            db_collection_name = self.db_config.collection_main
-            self.mongo_client = MongoClient(self.db_config.mongo_db_url)
-            collections = self.mongo_client[db_database_name][db_collection_name]
-            df = pd.DataFrame(list(collections.find()))
-            df.drop_duplicates(inplace=True, ignore_index=True)
-            if "_id" in df.columns:
-                df.drop(columns=["_id"], inplace=True)
-            df.replace({"na": np.nan}, inplace=True)
-            df.dropna(subset=["IPO_listing_price"], inplace=True, ignore_index=True)
-            return df
-
         except Exception as e:
             log_trn.info(f"Error: {e}")
             raise CustomException(e)
@@ -63,7 +45,12 @@ class DataIngestion:
         try:
             log_trn.info("Data Ingestion: Started")
             log_trn.info("Data Ingestion: Getting data from database")
-            df_main = self.get_dataframe()
+            df_main = get_df_from_MongoDB(
+                collection="IPOPredMain",
+                pipeline="train",
+                log=log_trn,
+                prefix="Data Ingestion",
+            )
 
             log_trn.info("Data Ingestion: Performing train-valid-test split")
             df_train, df_valid = train_test_split(
