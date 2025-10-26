@@ -12,12 +12,16 @@ from flask import Flask, request, render_template, send_file, abort, jsonify
 
 from src.Logging.logger import log_etl, log_trn, log_prd, log_flk
 from src.Exception.exception import CustomException, LogException
-from src.Pipeline.training_pipeline import TrainIPOPrediction
+
 from src.ETL.ETL_main import ETLPipeline
+from src.Pipeline.training_pipeline import TrainIPOPrediction
+from src.Pipeline.prediction_pipeline import MakeIPOPrediction
 
 
 class AplcOps:
-    def __init__(self, pipeline: Literal["etl", "train", "pred"] = "etl"):
+    def __init__(
+        self, pipeline: Literal["etl", "train", "pred"] = "etl", pred_file_path=None
+    ):
         self.log_path = f"./logs/{pipeline}"
         self.log_file = f"*_{pipeline}.log"
         self.logger = {"etl": log_etl, "train": log_trn, "pred": log_prd}.get(
@@ -26,7 +30,7 @@ class AplcOps:
         self.function = {
             "etl": ETLPipeline().run,
             "train": TrainIPOPrediction().train,  # <- Dont call here ()
-            "pred": TrainIPOPrediction().train,  # <- Change this once the function is ready
+            "pred": MakeIPOPrediction().predict,  # <- Use ops_prd.get_pred_func() to get callable
         }.get(pipeline, ETLPipeline().run)
 
     def get_latest_log(self):
@@ -44,21 +48,24 @@ class AplcOps:
             # raise CustomException(e)
             return jsonify({"error": "Internal Server Error"}), 500
 
-    def run_function_background(self):
+    def run_function_background(self, *args, **kwargs):
         try:
             self.logger.info("User Action: Started")
-            asyncio.run(self.function()) if asyncio.iscoroutinefunction(
-                self.function
-            ) else self.function()
+            if asyncio.iscoroutinefunction(self.function):
+                asyncio.run(self.function(*args, **kwargs))
+            else:
+                self.function(*args, **kwargs)
             self.logger.info("User Action: Finished")
 
         except Exception as e:
             LogException(e)
             # raise CustomException(e)
 
-    def run_function(self):
+    def run_function(self, *args, **kwargs):
         try:
-            thread = threading.Thread(target=self.run_function_background)
+            thread = threading.Thread(
+                target=self.run_function_background, args=args, kwargs=kwargs
+            )
             thread.start()
             return json.dumps({"status": "started"})
 
@@ -231,7 +238,8 @@ def latest_pred_log():
 
 @app.route("/api/prd_predict")
 def predict():
-    return ops_prd.run_function()
+    model_path = request.args.get("model")
+    return ops_prd.run_function(path=model_path)
 
 
 # Util API calls

@@ -1,5 +1,5 @@
 import asyncio
-from src.Logging.logger_etl import logging
+from src.Logging.logger import log_etl
 from src.Exception.exception import CustomException
 from src.ETL.ETL_main import ETLPipeline
 
@@ -9,5 +9,5 @@ if __name__ == "__main__":
         asyncio.run(ETLPipeline().run())
 
     except Exception as e:
-        logging.info(f"Error: {e}")
+        log_etl.info(f"Error: {e}")
         raise CustomException(e)

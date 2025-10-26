@@ -14,6 +14,7 @@ from src.Entity.config_entity import ModelTrainerConfig
 from src.Entity.artifact_entity import DataTransformationArtifact, ModelTrainerArtifact
 from src.Utils.main_utils import (
     read_numpy_array,
+    save_transformation_object,
     read_transformation_object,
     save_model_object,
     evaluate_models,
@@ -115,10 +116,10 @@ class ModelTrainer:
                 file_path=self.model_trainer_config.trained_model_file_path,
                 object=nm_object,
             )
-            save_model_object(
+            save_transformation_object(
                 file_path="src/Final_Artifacts/ppln_prpc.pkl", object=ppln_prpc
             )
-            save_model_object(
+            save_transformation_object(
                 file_path="src/Final_Artifacts/final_model.pkl",
                 object=best_model_object,
             )

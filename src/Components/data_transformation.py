@@ -9,7 +9,7 @@ from sklearn.impute import KNNImputer
 
 
 from src.Logging.logger import log_trn
-from src.Exception.exception import CustomException
+from src.Exception.exception import CustomException, LogException
 from src.Constants import common_constants, data_transformation
 from src.Entity.config_entity import DataTransformationConfig
 from src.Entity.artifact_entity import (
@@ -35,6 +35,7 @@ class DataTransformation:
 
         except Exception as e:
             log_trn.info(f"Error: {e}")
+            LogException(e)
             raise CustomException(e)
 
     def create_gmp_columns(self, data: pd.DataFrame = None) -> None:
@@ -108,19 +109,19 @@ class DataTransformation:
                 + rcmd_cols
                 + manu_cols
             )
-            # print(drop_cols)
+            items_to_remove = ["IPO_day2_qib", "IPO_day2_nii"]
+            drop_cols = [item for item in drop_cols if item not in items_to_remove]
             df.drop(columns=drop_cols, inplace=True)
             df["IPO_issue_size"] = df["IPO_issue_size"].replace(0, np.nan)
             return df
 
         except Exception as e:
             log_trn.info(f"Error: {e}")
+            LogException(e)
             raise CustomException(e)
 
     def create_pipeline_object(self, columns: List[str] = None) -> Pipeline:
         try:
-            # dt = data_transformation()
-            # impt_params = dt.TRANSFORMATION_IMPUTER_PARAMS
             ppln_prpc = Pipeline(
                 [
                     ("Preprocessing", FunctionTransformer(self.create_gmp_columns)),
@@ -151,6 +152,7 @@ class DataTransformation:
 
         except Exception as e:
             log_trn.info(f"Error: {e}")
+            LogException(e)
             raise CustomException(e)
 
     def initialise(self) -> DataTransformationArtifact:
@@ -239,4 +241,5 @@ class DataTransformation:
 
         except Exception as e:
             log_trn.info(f"Error: {e}")
+            LogException(e)
             raise CustomException(e)

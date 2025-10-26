@@ -2,7 +2,7 @@ import json
 from pymongo import MongoClient
 import pandas as pd
 
-from src.Logging.logger_etl import logging
+from src.Logging.logger import log_etl
 from src.Exception.exception import CustomException
 from src.Constants import data_ingestion, common_constants
 from src.Entity.config_entity import MongoDBConfig
@@ -27,7 +27,7 @@ class IPODataPusher:
     def insert_data_mongodb(self, records):
         try:
             self.database = self.db_config.database
-            self.collection = self.db_config.collection_orig  # <- Check before using
+            self.collection = self.db_config.collection_main  # <- Check before using
             self.records = records
 
             self.mongo_client = MongoClient(self.db_config.mongo_db_url)
@@ -42,10 +42,10 @@ class IPODataPusher:
 
 if __name__ == "__main__":
     FILE_PATH = f"{data_ingestion.DATA_DIR}/{common_constants.DATA_FILE_NAME}"
-    logging.info("ETL | Pushing Started")
+    log_etl.info("ETL | Pushing Started")
     networkobj = IPODataPusher()
     records = networkobj.csv_to_json_convertor(file_path=FILE_PATH)
     print(records)
     no_of_records = networkobj.insert_data_mongodb(records)
-    logging.info("ETL | Pushing Finished")
+    log_etl.info("ETL | Pushing Finished")
     print(no_of_records)
