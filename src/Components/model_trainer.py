@@ -7,8 +7,8 @@ from scikeras.wrappers import KerasClassifier
 from sklearn.ensemble import RandomForestClassifier
 
 from src.Logging.logger import log_trn
-from src.Exception.exception import CustomException
-from src.Constants import common_constants, dagshub_constants
+from src.Exception.exception import CustomException, LogException
+from src.Constants import common_constants, dagshub_constants, s3_constants
 from src.Constants.model_constants import model_dict, create_model
 from src.Entity.config_entity import ModelTrainerConfig
 from src.Entity.artifact_entity import DataTransformationArtifact, ModelTrainerArtifact

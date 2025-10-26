@@ -677,8 +677,6 @@ fetchLogContent(getFilename(etlLogs[0] || ''), 'etl', etlLogDisplay);
 
 updateRunBtn.addEventListener('click', () => {
   etlLogDisplay.textContent = 'Update process started...';
-
-
   fetch('/api/etl_update')
     .then(res => {
       if (!res.ok) throw new Error(`ETL update API failed (${res.status})`);

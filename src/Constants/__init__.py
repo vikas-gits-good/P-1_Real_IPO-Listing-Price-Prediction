@@ -81,3 +81,8 @@ class dagshub_constants:
 class model_pusher:
     FINAL_ARTIFACTS_DIR_NAME = "Final_Artifacts"
     FINAL_ARTIFACTS_DIR_PATH = "src/Final_Artifacts"
+
+
+@dataclass
+class s3_constants:
+    TRAINING_BUCKET_NAME = "s3-bct-ipo-price-prediction"

@@ -42,3 +42,11 @@ class ModelTrainerArtifact:
     metric_artf_train_set: ClassificationMetricArtifact
     metric_artf_vald_set: ClassificationMetricArtifact
     metric_artf_test_set: ClassificationMetricArtifact
+
+
+@dataclass
+class ModelPusherArtifact:
+    local_artifact_dir: str
+    local_model_dir: str
+    cloud_artifact_dir: str
+    cloud_model_dir: str

@@ -14,11 +14,10 @@ from sklearn.model_selection import GridSearchCV
 
 from logging import Logger
 from src.Logging.logger import log_etl, log_trn, log_prd
-from src.Exception.exception import CustomException
+from src.Exception.exception import CustomException, LogException
 from src.Utils.ml_utils import get_model_scores
 from src.Utils.estimator import NetworkModel
 from src.Entity.config_entity import MongoDBConfig
-from src.Constants import mongo_db_dc
 
 
 def save_dataframe(
@@ -326,4 +325,15 @@ def evaluate_models(
 
     except Exception as e:
         log_trn.info(f"Error: {e}")
+        raise CustomException(e)
+
+
+def s3_syncer(source: str = None, destination: str = None):
+    try:
+        log_trn.info("Model Pushing: Syncing data to/from s3 bucket")
+        command = f"aws s3 sync {source} {destination}"
+        os.system(command)
+
+    except Exception as e:
+        LogException(e)
         raise CustomException(e)

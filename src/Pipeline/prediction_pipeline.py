@@ -46,7 +46,6 @@ class MakeIPOPrediction:
             return df_pred
 
         except Exception as e:
-            log_prd.info(f"Error: {e}")
             LogException(e)
             raise CustomException(e)
 

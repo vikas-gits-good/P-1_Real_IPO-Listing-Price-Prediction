@@ -9,6 +9,8 @@ from src.Constants import (
     data_validation,
     data_transformation,
     model_trainer,
+    model_pusher,
+    s3_constants,
 )
 
 
@@ -18,6 +20,7 @@ class TrainingPipelineConfig:
         self.pipeline_name = common_constants.PIPELINE_NAME
         self.artifact_dir_name = common_constants.ARTIFACT_DIR
         self.artifact_dir_path = os.path.join(self.artifact_dir_name, self.timestamp)
+        self.model_dir = os.path.join(model_pusher.FINAL_ARTIFACTS_DIR_PATH)
 
 
 class DataIngestionConfig:
@@ -169,6 +172,21 @@ class ModelTrainerConfig:
 
 
 # for var, val in vars(ModelTrainerConfig()).items():
+#     print(f"{var}: {val}")
+
+
+class ModelPusherConfig:
+    def __init__(
+        self,
+        training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig(),
+    ):
+        self.url_artifact = f"s3://{s3_constants.TRAINING_BUCKET_NAME}/artifact/{training_pipeline_config.timestamp}"
+        self.url_models = f"s3://{s3_constants.TRAINING_BUCKET_NAME}/final_models/{training_pipeline_config.timestamp}"
+        self.lcl_artifact_dir = training_pipeline_config.artifact_dir_path
+        self.lcl_model_dir = training_pipeline_config.model_dir
+
+
+# for var, val in vars(ModelPusherConfig()).items():
 #     print(f"{var}: {val}")
 
 

@@ -1,9 +1,11 @@
 from src.Logging.logger import log_trn
 from src.Exception.exception import CustomException
+
 from src.Components.data_ingestion import DataIngestion
 from src.Components.data_validation import DataValidation
 from src.Components.data_transformation import DataTransformation
 from src.Components.model_trainer import ModelTrainer
+from src.Components.model_pusher import ModelPusher
 
 
 class TrainIPOPrediction:
@@ -25,6 +27,7 @@ class TrainIPOPrediction:
             mt_artf = ModelTrainer(dt_artf).initialise()
 
             log_trn.info(f"{'Model Pushing':-^{60}}")
+            mp_artf = ModelPusher(mt_artf).initialise()
 
         except Exception as e:
             log_trn.info(f"Error: {e}")
