@@ -17,6 +17,6 @@ RUN uv pip sync --system requirements.txt
 
 COPY . .
 
-RUN playwright install
+RUN playwright install-deps
 
 CMD ["python3", "app.py"]
