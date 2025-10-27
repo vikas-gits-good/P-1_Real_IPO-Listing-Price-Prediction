@@ -17,7 +17,6 @@ catboost_info/
 src/Research/
 src/Secrets/
 __pycache__/
-src/Data/
 
 # C extensions
 *.so
