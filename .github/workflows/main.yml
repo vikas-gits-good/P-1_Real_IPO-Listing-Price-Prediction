@@ -82,8 +82,13 @@ jobs:
       
       - name: Stop & remove previous container
         run: |
-          docker ps -q --filter "name=ec2-instance-ipo-price-prediction-project" | grep -q . && docker stop ec2-instance-ipo-price-prediction-project && docker rm -fv ec2-instance-ipo-price-prediction-project
-
+          if docker ps -q --filter "name=ec2-instance-ipo-price-prediction-project" | grep -q .; then
+            docker stop ec2-instance-ipo-price-prediction-project
+            docker rm -fv ec2-instance-ipo-price-prediction-project
+          else
+            echo "No container to stop or remove."
+          fi
+      
       - name: Run Docker image to serve users
         run: |
           docker run -d -p 8080:8080 --ipc="host" --name=ec2-instance-ipo-price-prediction-project -e 'AWS_ACCESS_KEY_ID=${{secrets.AWS_ACCESS_KEY_ID}}' -e 'AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}}' -e 'AWS_REGION=${{secrets.AWS_REGION}}' ${{secrets.AWS_ECR_LOGIN_URI}}/${{secrets.AWS_ECR_REPO_NAME}}:latest
