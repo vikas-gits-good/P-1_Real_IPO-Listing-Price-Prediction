@@ -1,7 +1,7 @@
 import os
 from glob import glob
 from src.Logging.logger import log_trn
-from src.Exception.exception import CustomException
+from src.Exception.exception import CustomException, LogException
 from src.Pipeline.prediction_pipeline import MakeIPOPrediction
 
 
@@ -14,5 +14,5 @@ if __name__ == "__main__":
         df_y_pred = MakeIPOPrediction().predict(path=model_paths[0])
 
     except Exception as e:
-        log_trn.info(f"Error: {e}")
+        LogException(e)
         raise CustomException(e)
