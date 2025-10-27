@@ -1,14 +1,16 @@
+import os
 import mlflow
 import dagshub
 import functools
 import numpy as np
+from dotenv import load_dotenv
 from typing import List
 from scikeras.wrappers import KerasClassifier
 from sklearn.ensemble import RandomForestClassifier
 
 from src.Logging.logger import log_trn
 from src.Exception.exception import CustomException, LogException
-from src.Constants import common_constants, dagshub_constants, s3_constants
+from src.Constants import common_constants, dagshub_constants
 from src.Constants.model_constants import model_dict, create_model
 from src.Entity.config_entity import ModelTrainerConfig
 from src.Entity.artifact_entity import DataTransformationArtifact, ModelTrainerArtifact
@@ -32,6 +34,9 @@ class ModelTrainer:
         try:
             self.data_transformation_artifact = artifact
             self.model_trainer_config = model_trainer_config
+            load_dotenv("src/Secrets/dagshub.env")
+            dagshub_token = os.getenv("DAGSHUB_USER_TOKEN")
+            dagshub.auth.add_app_token(dagshub_token)
             dagshub.init(
                 repo_owner=dagshub_constants.REPO_OWNER_NAME,
                 repo_name=dagshub_constants.REPO_NAME,

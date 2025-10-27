@@ -103,6 +103,7 @@ jobs:
             -e 'ANGEL_ONE_PIN=${{ secrets.ANGEL_ONE_PIN }}' \
             -e 'ANGEL_ONE_CLIENT_ID=${{ secrets.ANGEL_ONE_CLIENT_ID }}' \
             -e 'ANGEL_ONE_API_KEY=${{ secrets.ANGEL_ONE_API_KEY }}' \
+            -e 'DAGSHUB_USER_TOKEN=${{ secrets.DAGSHUB_USER_TOKEN }}' \
             ${{ secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.AWS_ECR_REPO_NAME }}:latest
           docker logs ec2-instance-ipo-price-prediction-project
 
