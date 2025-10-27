@@ -9,23 +9,15 @@ __pycache__/
 *$py.class
 
 # local folders
-.web/
 logs/
-assets/
 mlruns/
-ETL/
 Artifacts/
 Final_Artifacts/
-Reflex_Experiments/
 catboost_info/
 src/Research/
 src/Secrets/
-src/Data/
-src/ETL/
-node_modules/
 __pycache__/
-*package*.json
-# *server*.js
+src/Data/
 
 # C extensions
 *.so
