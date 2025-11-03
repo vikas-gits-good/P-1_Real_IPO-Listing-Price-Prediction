@@ -47,19 +47,39 @@ class DataTransformer:
             df = Data.copy()
 
             def calc_name(row) -> str:
-                return row["company_long_name"]
+                try:
+                    if pd.isnull(row["company_long_name"]):
+                        return np.nan
+                    else:
+                        return row["company_long_name"]
+
+                except Exception as e:
+                    LogException(e, logger=log_etl)
+                    return np.nan
 
             def calc_perc(row) -> float:
-                return round(
-                    (row["IPO_listing_price"] - row["IPO_issue_price"])
-                    / row["IPO_listing_price"]
-                    * 100,
-                    2,
-                )
+                try:
+                    if (
+                        pd.isnull(row["IPO_listing_price"])
+                        or row["IPO_issue_price"] == "error"
+                    ):
+                        return np.nan
+                    else:
+                        return round(
+                            (row["IPO_listing_price"] - float(row["IPO_issue_price"]))
+                            / row["IPO_listing_price"]
+                            * 100,
+                            2,
+                        )
+
+                except Exception as e:
+                    LogException(e, logger=log_etl)
+                    return np.nan
+                    # raise CustomException(e)
 
             def calc_catg(row) -> str:
                 try:
-                    if pd.isna(row["IPO_listing_gain_percentage"]):
+                    if pd.isnull(row["IPO_listing_gain_percentage"]):
                         return np.nan
                     else:
                         return next(

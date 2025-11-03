@@ -13,7 +13,7 @@ WORKDIR /app
 
 COPY requirements.txt ./
 
-RUN uv pip sync --system requirements.txt
+RUN uv pip sync --system --no-cache-dir requirements.txt
 
 COPY . .
 

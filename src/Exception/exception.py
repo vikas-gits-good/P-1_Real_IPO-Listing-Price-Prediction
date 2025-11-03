@@ -1,6 +1,8 @@
 import sys
 import logging
 
+from src.Logging.logger import log_ful
+
 
 # For raising error
 class CustomException(Exception):
@@ -14,11 +16,15 @@ class CustomException(Exception):
         return self.log_msg
 
 
-# For logging error
-def LogException(error: Exception = None, prefix: str = None):
+def LogException(
+    error: Exception = None,
+    prefix: str = "Error",
+    logger: logging.Logger = log_ful,
+):
     _, _, exc_tb = sys.exc_info()
-    lineno = exc_tb.tb_lineno
+    lineno = exc_tb.tb_lineno if exc_tb else None
     file_name = exc_tb.tb_frame.f_code.co_filename
-    log_msg = f"Error: File - {file_name} , line - [{lineno}], error - [{str(error)}]"
-    log_msg = f"{prefix}: {log_msg}" if prefix else log_msg
-    logging.info(log_msg)
+    log_msg = (
+        f"{prefix}: File - {file_name} , line - [{lineno}], error - [{str(error)}]"
+    )
+    logger.info(log_msg)

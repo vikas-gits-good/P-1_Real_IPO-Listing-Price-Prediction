@@ -4,6 +4,7 @@ import json
 import pickle
 import numpy as np
 import pandas as pd
+from glob import glob
 from typing import Literal
 from datetime import datetime
 from pymongo import MongoClient, UpdateOne
@@ -138,10 +139,12 @@ def get_df_from_MongoDB(
     collection: Literal[
         "IPOPredMain", "IPOPredOrig", "IPOPredTest", "IPOPredArcv"
     ] = "IPOPredMain",
-    pipeline: Literal["train", "predict", "archive", "latest"] = "train",
+    pipeline: Literal["etl", "train", "predict", "archive", "latest"] = "train",
     db_config: MongoDBConfig = MongoDBConfig(),
     log: Logger = log_trn,
-    prefix: Literal["Data Ingestion", "Prediction", "Webpage"] = "Data Ingestion",
+    prefix: Literal[
+        "Data Ingestion", "Prediction", "Webpage", "Extraction"
+    ] = "Data Ingestion",
 ) -> pd.DataFrame:
     try:
         database_name = db_config.database
@@ -158,10 +161,13 @@ def get_df_from_MongoDB(
             df.drop(columns=["_id"], inplace=True)
         df.replace({"na": np.nan}, inplace=True)
 
-        if pipeline == "train":
+        if pipeline == "etl":
+            pass
+
+        elif pipeline == "train":
             log.info(f"{prefix}: Dropping unlisted company data")
             df = df.dropna(subset=["IPO_listing_price"], ignore_index=True)
-            df = df.loc[df["IPO_day2_qib"] != "error", :]
+            df = df.loc[df["IPO_day3_qib"] != "error", :]
 
             last_month = today - relativedelta(months=1)
             end_date = last_month.replace(day=1)
@@ -219,7 +225,7 @@ def get_df_from_MongoDB(
         return df
 
     except Exception as e:
-        log_trn.info(f"Error: {e}")
+        LogException(e, logger=log)
         raise CustomException(e)
 
 
@@ -267,7 +273,7 @@ def put_df_to_MongoDB(
             collections.bulk_write(operations)
 
     except Exception as e:
-        log_trn.info(f"Error: {e}")
+        LogException(e, logger=log)
         raise CustomException(e)
 
 
@@ -333,6 +339,19 @@ def s3_syncer(source: str = None, destination: str = None):
         log_trn.info("Model Pushing: Syncing data to/from s3 bucket")
         command = f"aws s3 sync {source} {destination}"
         os.system(command)
+
+    except Exception as e:
+        LogException(e)
+        raise CustomException(e)
+
+
+def get_model_paths(latest: bool = True) -> str | list[str]:
+    try:
+        model_paths = glob("Artifacts/*/model_trainer/trained_model/*_model.pkl")
+        model_paths = sorted(
+            model_paths, key=lambda x: os.path.basename(x)[:19], reverse=True
+        )
+        return model_paths[0] if latest else model_paths
 
     except Exception as e:
         LogException(e)

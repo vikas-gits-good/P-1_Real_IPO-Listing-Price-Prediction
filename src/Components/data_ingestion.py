@@ -1,13 +1,11 @@
-import numpy as np
 import pandas as pd
-from pymongo import MongoClient
 
 from sklearn.model_selection import train_test_split
 
 from src.Logging.logger import log_trn
 from src.Exception.exception import CustomException
 from src.Constants import common_constants
-from src.Entity.config_entity import DataIngestionConfig, MongoDBConfig
+from src.Entity.config_entity import DataIngestionConfig
 from src.Entity.artifact_entity import DataIngestionArtifact
 from src.Utils.main_utils import save_dataframe, get_df_from_MongoDB
 
@@ -16,11 +14,9 @@ class DataIngestion:
     def __init__(
         self,
         data_ingestion_config: DataIngestionConfig = DataIngestionConfig(),
-        db_config: MongoDBConfig = MongoDBConfig(),
     ):
         try:
             self.data_ingestion_config = data_ingestion_config
-            self.db_config = db_config
         except Exception as e:
             log_trn.info(f"Error: {e}")
             raise CustomException(e)

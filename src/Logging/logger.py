@@ -4,8 +4,9 @@ from datetime import datetime
 from typing import Literal
 
 
-def get_logger(log_type: Literal["train", "pred", "etl", "flask"] = "train"):
+def get_logger(log_type: Literal["full", "train", "pred", "etl", "flask"] = "train"):
     log_dirs = {
+        "full": os.path.join(os.getcwd(), "logs", "full"),
         "train": os.path.join(os.getcwd(), "logs", "train"),
         "pred": os.path.join(os.getcwd(), "logs", "pred"),
         "etl": os.path.join(os.getcwd(), "logs", "etl"),
@@ -46,6 +47,7 @@ def get_logger(log_type: Literal["train", "pred", "etl", "flask"] = "train"):
     return logger
 
 
+log_ful = get_logger("full")
 log_trn = get_logger("train")
 log_etl = get_logger("etl")
 log_prd = get_logger("pred")

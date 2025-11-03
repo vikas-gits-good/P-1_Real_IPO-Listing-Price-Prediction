@@ -12,10 +12,10 @@ from flask import Flask, request, render_template, send_file, abort, jsonify
 from src.Logging.logger import log_etl, log_trn, log_prd, log_flk
 from src.Exception.exception import CustomException, LogException
 
-from src.Utils.main_utils import get_df_from_MongoDB
-from src.ETL.ETL_main import ETLPipeline
+from src.Pipeline.ETL_pipeline import ETLPipeline
 from src.Pipeline.training_pipeline import TrainIPOPrediction
 from src.Pipeline.prediction_pipeline import MakeIPOPrediction
+from src.Utils.main_utils import get_df_from_MongoDB, get_model_paths
 
 
 class AplcOps:
@@ -29,10 +29,11 @@ class AplcOps:
             pipeline, log_etl
         )
         self.function = {
-            "etl": ETLPipeline().run,
+            "etl": ETLPipeline().scrape,
             "train": TrainIPOPrediction().train,  # <- Dont call here ()
             "pred": MakeIPOPrediction().predict,
-        }.get(pipeline, ETLPipeline().run)
+        }.get(pipeline, ETLPipeline().scrape)
+        self.default_model_path = get_model_paths(latest=True)
 
     def get_latest_log(self):
         try:
@@ -119,7 +120,7 @@ class UtilOps:
         etl_log_files = glob("logs/etl/*_etl.log")
         trn_log_files = glob("logs/train/*_train.log")
         prd_log_files = glob("logs/pred/*_pred.log")
-        trn_mdl_files = glob("Artifacts/*/model_trainer/trained_model/*_model.pkl")
+        trn_mdl_files = get_model_paths(latest=False)
 
         log_prd.info("Sorting files by date")
         # sort by date in name [:19] -> '%Y-%m-%d_%H-%M-%S'
@@ -229,8 +230,7 @@ for handler in werkzeug_logger.handlers[:]:
 werkzeug_logger.addHandler(log_flk.handlers[0])
 
 # initialise app
-application = Flask(__name__)
-app = application
+app = Flask(__name__)
 
 # # initialise operations
 ops_etl = AplcOps(pipeline="etl")
@@ -269,7 +269,7 @@ def latest_pred_log():
 
 @app.route("/api/prd_predict")
 def predict():
-    model_path = request.args.get("model")
+    model_path = request.args.get("model", ops_prd.default_model_path)
     return ops_prd.run_function(path=model_path)
 
 

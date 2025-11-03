@@ -28,6 +28,7 @@ from src.ETL.etl_config.ETL_config import (
     BSECrawlerConfig,
 )
 from src.Entity.config_entity import MongoDBConfig
+from src.Utils.main_utils import get_df_from_MongoDB
 
 
 class CompanyListExtractor:
@@ -223,7 +224,9 @@ class IPODataExtractor:
                         date = "error"
                 return date
 
-            details["IPO_list_date"] = [extract_ipo_list_date(cols)]
+            details["IPO_list_date"] = [
+                self.safe_calc(lambda: extract_ipo_list_date(cols))
+            ]
 
             details["IPO_face_value"] = [
                 self.safe_calc(
@@ -256,7 +259,7 @@ class IPODataExtractor:
                 size = int(re.findall(regex, data)[-1])
                 return size
 
-            details["IPO_lot_size"] = [extract_lot_size(cols)]
+            details["IPO_lot_size"] = [self.safe_calc(lambda: extract_lot_size(cols))]
 
             def extract_issue_size(cols):
                 regex_pattern = r"\d{1,3}(?:,\d{2})*(?:,\d{3})(?:\.\d+)?|\d+(?:\.\d+)?"
@@ -269,9 +272,10 @@ class IPODataExtractor:
                     matches7 = re.findall(regex_pattern, text7)
                     return float(matches7[-1].replace(",", "")) * 10**7
 
-            details["IPO_issue_size"] = [extract_issue_size(cols)]
+            details["IPO_issue_size"] = [
+                self.safe_calc(lambda: extract_issue_size(cols))
+            ]
 
-            # print(details)
             df_ipo = pd.concat(
                 [df_ipo, pd.DataFrame(details)], axis=0, ignore_index=True
             )
@@ -1000,6 +1004,7 @@ class ScreenerExtractor:
     ):
         self.data = Data.dropna(inplace=False, ignore_index=True, how="all")
         self.company_names = self.data["Company_name"].to_list()
+        self.company_names = [s.replace("&", "and") for s in self.company_names]
         self.screener_crawl_method = screener_crawl_method
 
         CrawlerConfig = GMPCrawlerConfig(
@@ -1226,8 +1231,9 @@ class ScreenerExtractor:
                     scrn_dict["company_name"] = [
                         self.safe_calc(
                             lambda: re.search(
-                                r"mainpage\+(.+?)&t=",
                                 # r"mainpage\+(.+?)",
+                                # r"mainpage\+(.+?)&t=",
+                                r"mainpage\+(.+?)&[^=]*=",
                                 result.url,
                             )
                             .group(1)
@@ -1318,12 +1324,17 @@ class ScreenerExtractor:
     async def extract(self):
         try:
             log_etl.info("Extraction: Scraping for screener links")
+            search_tmpl = {
+                "google.com": "https://www.google.com/search?q=screener.in+mainpage+{company}&pws=0&gl=IN&hl=en",
+                "google.co.in": "https://www.google.co.in/search?q=screener.in+mainpage+{company}&pws=0&hl=en",
+                "duckduckgo.com": "https://duckduckgo.com/?q=screener.in+mainpage+{company}&t=h_&ia=web",
+            }
+            search_engine = list(search_tmpl.keys())[1]
             urls_srch = [
-                f"https://duckduckgo.com/?q=screener.in+mainpage+{company.replace(' ', '+')}&t=h_&ia=web"
-                # f"https://google.co.in/?q=screener.in+mainpage+{company.replace(' ', '+')}"
-                # f"https://www.google.com/search?q=screener.in+mainpage+{company.replace(' ', '+')}"
+                search_tmpl[search_engine].format(company=company.replace(" ", "+"))
                 for company in self.company_names
             ]
+
             df_link = await self.while_loop_function(
                 func=self.get_screener_links,
                 data_column="screener_link",
@@ -1352,26 +1363,44 @@ class ScreenerExtractor:
 
             # reorder parallel scraped data
             def reorder_df(df: pd.DataFrame, column: str, order: list):
-                placeholder = "__null__"
                 df_copy = df.copy()
-                # replace NaN, None with __null__
-                df_copy[column] = df_copy[column].fillna(placeholder)
-                order = [placeholder if pd.isnull(x) else x for x in order]
+                # create unique null placeholders
+                order = [
+                    f"__null__{i}" if pd.isnull(item) else item
+                    for i, item in enumerate(order)
+                ]
+                null_order = [item for item in order if "__null__" in item]
+
+                # assign these null placeholders to df_copy
+                null_iter = iter(null_order)
+                df_copy[column] = [
+                    next(null_iter) if pd.isnull(row) else row
+                    for row in df_copy[column]
+                ]
+
+                # Use order as categories
                 df_copy[column] = pd.Categorical(
                     df_copy[column], categories=order, ordered=True
                 )
-                # sort the dataframe
+
+                # Sort dataframe
                 df_sorted = df_copy.sort_values(by=column).reset_index(drop=True)
-                # replace __null__ with None
-                df_sorted.loc[df_sorted[column] == placeholder, column] = None
+
+                # Convert placeholder back to None after sorting
+                filt = df_sorted[column].str.contains("__null__", na=False)
+                df_sorted.loc[filt, column] = None
                 return df_sorted
 
+            # log_etl.info(f"\n{self.company_names}")
             df_link = reorder_df(df_link, "company_name", self.company_names)
             # Then reorder df_data based on df_link["screener_link"]
+            # log_etl.info(f"\n{df_link['screener_link'].to_list()}")
             df_data = reorder_df(
                 df_data, "screener_link", df_link["screener_link"].to_list()
             )
+            # log_etl.info(f"\n{df_data['bse_link'].to_list()}")
             df_bse = reorder_df(df_bse, "bse_link", df_data["bse_link"].to_list())
+            log_etl.info("Extraction: Successfully reordered parallel scraped data")
 
             # reassign sorted, updated symbols
             df_data["bse_symbol"] = df_bse["bse_symbol"]
@@ -1389,8 +1418,7 @@ class ScreenerExtractor:
             return df_scrn
 
         except Exception as e:
-            log_etl.info(f"Error in ScreenerExtractor().extract(): {e}")
-            LogException(e)
+            LogException(e, logger=log_etl)
             data = {
                 "screener_link": [np.nan] * len(self.company_names),
                 "company_long_name": [np.nan] * len(self.company_names),
@@ -1513,45 +1541,25 @@ class CheckDatabase:
         self,
         Data: pd.DataFrame = None,
         drop_sme: bool = True,
-        db_config: MongoDBConfig = MongoDBConfig(),
     ):
         try:
             self.data = Data
             self.drop_sme = drop_sme
-            self.db_config = db_config
 
         except Exception as e:
             LogException(e, "Extraction")
             raise CustomException(e)
 
-    def get_db_data(self) -> pd.DataFrame:
-        try:
-            df_mgdb = pd.DataFrame()
-
-            self.mongo_client = MongoClient(self.db_config.mongo_db_url)
-            collections = self.mongo_client[self.db_config.database][
-                self.db_config.collection_main  # <- Double check before using
-            ]
-            df_mgdb = pd.DataFrame(list(collections.find()))
-            df_mgdb.drop_duplicates(inplace=True, ignore_index=True)
-            if "_id" in df_mgdb.columns:
-                df_mgdb.drop(columns=["_id"], inplace=True)
-            df_mgdb.replace({"na": np.nan}, inplace=True)
-            return df_mgdb
-
-        except Exception as e:
-            log_etl.info(
-                "Extraction: Error in get_db_data(). Returning empty dataframe"
-            )
-            LogException(e, "Extraction")
-            return df_mgdb
-            # raise CustomException(e)
-
     def filter(self):
         try:
             df_scrp = self.data.copy()
             log_etl.info("Extraction: Getting data from database for comparison")
-            df_mgdb = self.get_db_data()
+            df_mgdb = get_df_from_MongoDB(
+                collection="IPOPredMain",
+                pipeline="etl",
+                log=log_etl,
+                prefix="Extraction",
+            )
 
             if self.drop_sme:
                 log_etl.info("Extraction: Dropping SME data from scraping")

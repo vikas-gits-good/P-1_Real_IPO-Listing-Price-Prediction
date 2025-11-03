@@ -12,7 +12,7 @@ class common_constants:
     TRAIN_FILE_NAME = "train.csv"
     VALD_FILE_NAME = "valid.csv"
     TEST_FILE_NAME = "test.csv"
-    RANDOM = 565
+    RANDOM = 787
     SAVED_MODEL_DIR_NAME = "saved_models"
     SAVED_MODEL_FILE_NAME = "model.pkl"
 
