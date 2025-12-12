@@ -18,6 +18,7 @@ src/Research/
 src/Secrets/
 __pycache__/
 src/Data/Alternate_data/
+*.bkp
 
 # C extensions
 *.so
