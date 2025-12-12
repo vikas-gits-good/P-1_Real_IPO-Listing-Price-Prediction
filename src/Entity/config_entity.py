@@ -54,9 +54,6 @@ class DataIngestionConfig:
         )
         self.train_size = data_ingestion.TRAIN_SPLIT_RATIO
         self.test_size = data_ingestion.TEST_SPLIT_RATIO
-        self.collection_name = mongo_db_dc.COLLECTION_NAME_MAIN
-        self.database_name = mongo_db_dc.DATABASE_NAME
-        self.random_state = common_constants.RANDOM
 
 
 # for var, val in vars(DataIngestionConfig()).items():

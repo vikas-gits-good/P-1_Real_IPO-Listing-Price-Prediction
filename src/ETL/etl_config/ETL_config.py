@@ -42,6 +42,38 @@ class LoadConfig:
         pass
 
 
+class CompanyCrawlConfig:
+    def __init__(self):
+        self.browser_config = BrowserConfig(
+            browser_type="chromium",
+            headless=True,
+            verbose=False,
+        )
+        JSON_SCHEMA = {
+            "name": "Company Info",
+            "baseSelector": "div > table > tbody > tr:not(:has(td:first-child div a > del))",
+            "fields": [
+                {
+                    "name": "Company_name",
+                    "selector": "a",
+                    "type": "text",
+                },
+                {
+                    "name": "Company_info_url",
+                    "selector": "a",
+                    "type": "attribute",
+                    "attribute": "href",
+                },
+            ],
+        }
+        extract_strat = JsonCssExtractionStrategy(schema=JSON_SCHEMA)
+        self.crawler_run_config = CrawlerRunConfig(
+            cache_mode=CacheMode.BYPASS,
+            scraping_strategy=extract_strat,
+            js_code=["""await new Promise(r=>setTimeout(r,5000));"""],
+        )
+
+
 class GMPCrawlerConfig:
     def __init__(self, max_parallel: int = 10, len_list: int = None):
         self.browser_config = BrowserConfig(

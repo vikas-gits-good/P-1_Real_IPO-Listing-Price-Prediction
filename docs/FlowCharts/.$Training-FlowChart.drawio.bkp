@@ -1,0 +1,122 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.0.3 Chrome/140.0.7339.249 Electron/38.7.2 Safari/537.36" version="29.0.3">
+  <diagram name="Page-1" id="0fETL74BE-adGMEdSHf4">
+    <mxGraphModel dx="1246" dy="754" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="zmX3wtb_RKWLbssPfADa-1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="zmX3wtb_RKWLbssPfADa-2" target="zmX3wtb_RKWLbssPfADa-3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="zmX3wtb_RKWLbssPfADa-2" value="Class: DataIngestionConfig()&lt;div&gt;Output: Train, validation, test set directories. Train &amp;amp; test size&amp;nbsp;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;" parent="1" vertex="1">
+          <mxGeometry x="95" width="190" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="zmX3wtb_RKWLbssPfADa-3" value="DataIngestion()" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry y="90" width="380" height="110" as="geometry">
+            <mxRectangle x="90" y="160" width="230" height="30" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="zmX3wtb_RKWLbssPfADa-4" value="&lt;b&gt;&lt;u&gt;Parameters:&lt;/u&gt;&lt;/b&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;config:&amp;nbsp;&lt;/span&gt;DataIngestionConfig" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" parent="zmX3wtb_RKWLbssPfADa-3" vertex="1">
+          <mxGeometry y="26" width="380" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="zmX3wtb_RKWLbssPfADa-5" value="&lt;b&gt;&lt;u&gt;Task:&lt;/u&gt;&lt;/b&gt; Get data from MongoDB and split to train, validation, test sets" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" parent="zmX3wtb_RKWLbssPfADa-3" vertex="1">
+          <mxGeometry y="50" width="380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="zmX3wtb_RKWLbssPfADa-6" value="&lt;u style=&quot;font-weight: bold;&quot;&gt;Output:&lt;/u&gt;&amp;nbsp;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;DataIngestionArtifact(&lt;span style=&quot;white-space: pre; background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;train_file_path, &lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;valid_file_path,&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;test_file_path&lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;)&lt;/span&gt;&lt;/div&gt;" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" parent="zmX3wtb_RKWLbssPfADa-3" vertex="1">
+          <mxGeometry y="70" width="380" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="1_sfupUSwbBXEmFR8NGR-2" target="1_sfupUSwbBXEmFR8NGR-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-2" value="Class: DataValidationConfig()&lt;div&gt;Output: File paths for valid and invalid (train, validation, test set) data &amp;amp; drift report&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="531.25" width="177.5" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-3" value="DataValidation()" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="420" y="85" width="400" height="120" as="geometry">
+            <mxRectangle x="90" y="160" width="230" height="30" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-4" value="&lt;b&gt;&lt;u&gt;Parameters:&lt;/u&gt;&lt;/b&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;artifact:&amp;nbsp;DataIngestionArtifact&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;config:&amp;nbsp;&lt;/span&gt;DataValidationConfig&lt;/div&gt;" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="1_sfupUSwbBXEmFR8NGR-3">
+          <mxGeometry y="26" width="400" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-5" value="&lt;b&gt;&lt;u&gt;Task:&lt;/u&gt;&lt;/b&gt; Read &amp;amp; validate all 3 datasets and generate drift report" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="1_sfupUSwbBXEmFR8NGR-3">
+          <mxGeometry y="60" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-6" value="&lt;u style=&quot;font-weight: bold;&quot;&gt;Output:&lt;/u&gt;&amp;nbsp;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;DataValidationArtifact(2 x&amp;nbsp;&lt;span style=&quot;white-space: pre; background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;validation_status, 3 x &lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;valid_file_path,&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;3 x invalid_file_path, 2x drift_report_path&lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;)&lt;/span&gt;&lt;/div&gt;" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="1_sfupUSwbBXEmFR8NGR-3">
+          <mxGeometry y="80" width="400" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.25;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="zmX3wtb_RKWLbssPfADa-5" target="1_sfupUSwbBXEmFR8NGR-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="1_sfupUSwbBXEmFR8NGR-13" target="1_sfupUSwbBXEmFR8NGR-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-13" value="Class: DataTransformationArtifact()&lt;div&gt;Output: File paths for valid and invalid (train, validation, test set) data &amp;amp; drift report&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="945.63" width="208.75" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="1_sfupUSwbBXEmFR8NGR-14" target="1_sfupUSwbBXEmFR8NGR-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-14" value="DataTransformation()" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="860.01" y="80" width="380" height="130" as="geometry">
+            <mxRectangle x="90" y="160" width="230" height="30" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-15" value="&lt;b&gt;&lt;u&gt;Parameters:&lt;/u&gt;&lt;/b&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;artifact:&amp;nbsp;DataValidationArtifact&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;config:&amp;nbsp;&lt;/span&gt;DataTransformationConfig&lt;/div&gt;" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="1_sfupUSwbBXEmFR8NGR-14">
+          <mxGeometry y="26" width="380" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-16" value="&lt;b&gt;&lt;u&gt;Task:&lt;/u&gt;&lt;/b&gt; Transform all 3 datasets &amp;amp; then to numpy array. Save pipeline" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="1_sfupUSwbBXEmFR8NGR-14">
+          <mxGeometry y="60" width="380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-17" value="&lt;u style=&quot;font-weight: bold;&quot;&gt;Output:&lt;/u&gt;&amp;nbsp;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;DataTransformationArtifact(&lt;div&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;transformed_object_file_path,&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;transformed_train_file_path,&lt;/span&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;&lt;div&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;transformed_valid_file_path,&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;transformed_test_file_path&lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;)&lt;/span&gt;&lt;/div&gt;&lt;/span&gt;&lt;/div&gt;" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="1_sfupUSwbBXEmFR8NGR-14">
+          <mxGeometry y="80" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.001;entryY=0.23;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="1_sfupUSwbBXEmFR8NGR-3" target="1_sfupUSwbBXEmFR8NGR-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-20" value="Class: ModelTrainerConfig()&lt;div&gt;Output: File paths to save best fit model &amp;amp; best model selection threshold&amp;nbsp;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="945.6299999999999" y="460" width="208.75" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-21" value="ModelTrainer()" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="860.01" y="290" width="380" height="130" as="geometry">
+            <mxRectangle x="90" y="160" width="230" height="30" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-22" value="&lt;b&gt;&lt;u&gt;Parameters:&lt;/u&gt;&lt;/b&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;artifact:&amp;nbsp;DataTransformationArtifact&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;config:&amp;nbsp;&lt;/span&gt;ModelTrainerConfig&lt;/div&gt;" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="1_sfupUSwbBXEmFR8NGR-21">
+          <mxGeometry y="26" width="380" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-23" value="&lt;b&gt;&lt;u&gt;Task:&lt;/u&gt;&lt;/b&gt; Train, test &amp;amp; track and then select best model." style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="1_sfupUSwbBXEmFR8NGR-21">
+          <mxGeometry y="60" width="380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-24" value="&lt;u style=&quot;font-weight: bold;&quot;&gt;Output:&lt;/u&gt;&amp;nbsp;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;ModelTrainerArtifact(&lt;div&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;/span&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;trained_model_file_path, metric_artf_train_set&lt;br/&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;metric_artf_vald_set, metric_artf_test_set&lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;)&lt;/span&gt;&lt;/div&gt;" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="1_sfupUSwbBXEmFR8NGR-21">
+          <mxGeometry y="80" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="1_sfupUSwbBXEmFR8NGR-20" target="1_sfupUSwbBXEmFR8NGR-24">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-29" value="Class: ModelPusherConfig()&lt;div&gt;Output: local and cloud paths for artifacts and models&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="592.8100000000001" y="460" width="174.38" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-30" value="ModelPusher()" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="540" y="300" width="280" height="110" as="geometry">
+            <mxRectangle x="90" y="160" width="230" height="30" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-31" value="&lt;b&gt;&lt;u&gt;Parameters:&lt;/u&gt;&lt;/b&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;artifact:&amp;nbsp;ModelTrainerArtifact&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;config:&amp;nbsp;&lt;/span&gt;ModelPusherConfig&lt;/div&gt;" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="1_sfupUSwbBXEmFR8NGR-30">
+          <mxGeometry y="26" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-32" value="&lt;b&gt;&lt;u&gt;Task:&lt;/u&gt;&lt;/b&gt; Push Artifacts &amp;amp; Models to AWS S3 bucket" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="1_sfupUSwbBXEmFR8NGR-30">
+          <mxGeometry y="60" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-33" value="&lt;u style=&quot;font-weight: bold;&quot;&gt;Output:&lt;/u&gt;&amp;nbsp;None" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="1_sfupUSwbBXEmFR8NGR-30">
+          <mxGeometry y="80" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-34" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="1_sfupUSwbBXEmFR8NGR-29" target="1_sfupUSwbBXEmFR8NGR-33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1_sfupUSwbBXEmFR8NGR-38" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.999;entryY=0.859;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="1_sfupUSwbBXEmFR8NGR-21" target="1_sfupUSwbBXEmFR8NGR-31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

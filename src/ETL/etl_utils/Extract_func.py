@@ -26,6 +26,7 @@ from src.ETL.etl_config.ETL_config import (
     ScreenerCSSCrawlerConfig,
     ScreenerHTMLCrawlerConfig,
     BSECrawlerConfig,
+    CompanyCrawlConfig,
 )
 from src.Entity.config_entity import MongoDBConfig
 from src.Utils.main_utils import get_df_from_MongoDB
@@ -36,36 +37,13 @@ class CompanyListExtractor:
         self,
         start_year: int = 2012,
         end_year: int = datetime.now().year,
-        headless: bool = True,
+        crawl_config: CompanyCrawlConfig = CompanyCrawlConfig(),
     ):
         try:
             log_etl.info("Extraction: Initializing Web Scraping")
             self.start_year = start_year
             self.end_year = end_year
-            self.browser_config = BrowserConfig(
-                browser_type="chromium", headless=headless, verbose=False
-            )
-            self.crawler_config = CrawlerRunConfig(
-                extraction_strategy=JsonCssExtractionStrategy(
-                    schema={
-                        "name": "Company Info",
-                        "baseSelector": "div > table > tbody > tr:not(:has(td:first-child div a > del))",  # "div > table > tbody > tr",
-                        "fields": [
-                            {
-                                "name": "Company_name",
-                                "selector": "a",
-                                "type": "text",
-                            },
-                            {
-                                "name": "Company_info_url",
-                                "selector": "a",
-                                "type": "attribute",
-                                "attribute": "href",
-                            },
-                        ],
-                    }
-                )
-            )
+            self.crawl_config = crawl_config
 
         except Exception as e:
             raise CustomException(e)
@@ -80,9 +58,13 @@ class CompanyListExtractor:
             ]
             df = pd.DataFrame()
 
-            async with AsyncWebCrawler(config=self.browser_config) as crawler:
+            async with AsyncWebCrawler(
+                config=self.crawl_config.browser_config
+            ) as crawler:
                 for url in url_list:
-                    result = await crawler.arun(url=url, config=self.crawler_config)
+                    result = await crawler.arun(
+                        url=url, config=self.crawl_config.crawler_run_config
+                    )
                     if result and result.extracted_content:
                         products = json.loads(result.extracted_content)
                         df_temp = pd.DataFrame(products)

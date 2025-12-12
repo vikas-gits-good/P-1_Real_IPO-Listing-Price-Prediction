@@ -222,6 +222,7 @@ def get_df_from_MongoDB(
             df["IPO_open_date"] = df["IPO_open_date"].dt.strftime("%Y-%m-%d")
 
         df.reset_index(drop=True, inplace=True)
+        log.info(f"Data from DB\n{df}")
         return df
 
     except Exception as e:
