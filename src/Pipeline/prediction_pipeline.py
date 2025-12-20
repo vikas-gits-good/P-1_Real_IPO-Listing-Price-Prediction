@@ -18,7 +18,7 @@ class MakeIPOPrediction:
     def __init__(self):
         pass
 
-    def predict(self, path: str = None):
+    def predict(self, path: str):
         try:
             log_prd.info(f"Prediction: Reading '{path.split('/')[-1]}' object")
             trfm_obj: NetworkModel = read_model_object(file_path=path)

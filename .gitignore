@@ -16,6 +16,7 @@ Final_Artifacts/
 catboost_info/
 src/Research/
 src/Secrets/
+src/Expt/
 __pycache__/
 src/Data/Alternate_data/
 *.bkp

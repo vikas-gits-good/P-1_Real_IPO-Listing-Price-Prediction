@@ -3,7 +3,7 @@ An end-to-end ML web app deployed in AWS EC2 instance to predict listing gain (%
 
 
 ## Abstract
-Investing in IPO for listing gains is a very lucrative way to make potentially make money with relatively low time and effort invested. Currently most people refer to broker for advice on IPO investment choices and in some cases tend to be delayed or not updated on their website. This project aims to build a fully automated system that can monitor companies going public, look at their financials and predict expected listing gains. This project was inspired by this paper [Experimenting with Multi-modal Information to Predict Success of Indian IPOs](https://arxiv.org/abs/2412.16174). The dataset from this paper **was not used** instead, data was scraped manually.
+Investing in IPO for listing gains is a very lucrative way to potentially make money with relatively low time and effort invested. Currently most people refer to broker for advice on IPO investment choices and in some cases tend to be delayed or not updated on their website. This project aims to build a fully automated system that can monitor companies going public, look at their financials and predict expected listing gains. This project was inspired by this paper [Experimenting with Multi-modal Information to Predict Success of Indian IPOs](https://arxiv.org/abs/2412.16174). The dataset from this paper **was not used** instead, data was scraped manually.
 
 
 ## Vision
@@ -14,7 +14,6 @@ A fully automated web application that will scrape to find companies currently g
 * Successfully completed project and verified deployment on AWS EC2 instance. [Check here](https://github.com/vikas-gits-good/P-1_Real_IPO-Listing-Price-Prediction/actions/runs/18843523877).
 * Deleted EC2 instance after use to avoid billing.
 * If prospective employers want a live demo of the project, please let me know the day before the meeting so that I can set this up again.
-* There were some website GUI design changes from the sites I scrape the data from and as a consequence the **ETL Pipeline broke**. This has caused issues downstream. I plan to rectify this after completing this project: [Psychology Q&A GraphRAG Agentic AI Chatbot](https://github.com/vikas-gits-good/P-2_Real_Agentic-AI-Chatbot-on-JAP).
 
 
 ## Results
@@ -25,13 +24,13 @@ A fully automated web application that will scrape to find companies currently g
 
 ## Pipelines
 1. **ETL Pipeline:** Manages data collection, processing & updating.
-    * **CompanyListExtractor** will scrape all company data within a time range using **CompanyCrawlConfig** to output a list of companies & urls.
-    * **CheckDatabase** will call data from MongoDB using **MongoDBConfig** and filter out the existing data to output a filtered dataframe of companies & urls.
-    * **IPODataExtractor** is an async function that will scrape IPO & GMP data from multiple sites using [crawl4ai](https://github.com/unclecode/crawl4ai) package with **GMPCrawlerConfig** to output a dataframe with IPO & GMP data.
-    * **ScreenerExtractor** is an async function that will scrape [screener](https://www.screener.in/) website for selected companies financial data using **ScreenerHTMLCrawlerConfig** to output a dataframe with IPO, GMP & Screener data.
-    * **ListingPriceExtractor** will use **AngelOneConfig** to make API calls and get the listing price of companies that are already listed.
-    * **TransformData** main class will call **DataTransformer** sub class with **TransformationConfig** which will transform the data. Essentially it updates subscription columns, creates target column and reorder the dataframe.
-    * **LoadData** main class will call **DataLoader** sub class with **MongoDBConfig** which will load the data to MongoDB. Essentially is uses parallel upsert operation to update existing data or create new data.
+    * `CompanyListExtractor` will scrape all company data within a time range using `CompanyCrawlConfig` to output a list of companies & urls.
+    * `CheckDatabase` will call data from MongoDB using `MongoDBConfig` and filter out the existing data to output a filtered dataframe of companies & urls.
+    * `IPODataExtractor` is an async function that will scrape IPO & GMP data from multiple sites using [crawl4ai](https://github.com/unclecode/crawl4ai) package with `GMPCrawlerConfig` to output a dataframe with IPO & GMP data.
+    * `ScreenerExtractor` is an async function that will scrape [screener](https://www.screener.in/) website for selected companies financial data using `ScreenerHTMLCrawlerConfig` to output a dataframe with IPO, GMP & Screener data.
+    * `ListingPriceExtractor` will use `AngelOneConfig` to make API calls and get the listing price of companies that are already listed.
+    * `TransformData` main class will call `DataTransformer` sub class with `TransformationConfig` which will transform the data. Essentially it updates subscription columns, creates target column and reorder the dataframe.
+    * `LoadData` main class will call `DataLoader` sub class with `MongoDBConfig` which will load the data to MongoDB. Essentially is uses parallel upsert operation to update existing data or create new data.
 
 Below is the ETL Pipeline Flowchart. Flow chart images is [stored here](https://github.com/vikas-gits-good/P-1_Real_IPO-Listing-Price-Prediction/tree/main/docs/Images/).
 
@@ -40,11 +39,11 @@ Below is the ETL Pipeline Flowchart. Flow chart images is [stored here](https://
 
 
 2. **Training Pipeline:** Process data, train models and upload artifacts and models to AWS S3 bucket.
-    * **DataIngestion** along with **DataIngestionConfig** will get data using **MongoDBConfig**. It will use data from July 2012 to the previous month at runtime. This data is then split into train, validation & test sets and outputs **DataIngestionArtifact** containing file paths.
-    * **DataValidation** along with **DataValidationConfig** & **DataIngestionArtifact** will validate the column in all three datasets and check the data drift distribution between train-validation and train-test sets and outputs **DataValidationArtifact** containing file paths to valid, invalid  datasets and drift report.
-    * **DataTransformation** along with **DataTransformationConfig** & **DataValidationArtifact** will create a [scikit-learn](https://github.com/scikit-learn/scikit-learn) `Pipeline` object with all the data transformation strategies. This object is then used to `fit_transform()` on the train set and saved to file. This fitted pipeline object will be used to `transform()` the validation and test set. All three datasets are then converted to [numpy](https://github.com/numpy/numpy) arrays and then outputs **DataTransformationArtifact** containing the file paths.
-    * **ModelTrainer** along with **ModelTrainerConfig** & **DataTransformationArtifact** will train multiple models using `GridSearchCV` and then select the model that scores the highest on the validation set. This model is used to check performance on the test set. The best fit model along with the transformation pipeline object is then used to create a **NetworkModel** object for use in Inference Pipeline. It finally outputs **ModelTrainerArtifact** containing file paths.
-    * **ModelPusher** along with **ModelPusherConfig** & **ModelTrainerArtifact** will push the best fit model and the artifacts folder to AWS S3 Bucket using [AWS CLI](https://github.com/aws/aws-cli).
+    * `DataIngestion` along with `DataIngestionConfig` will get data using `MongoDBConfig`. It will use data from July 2012 to the previous month at runtime. This data is then split into train, validation & test sets and outputs `DataIngestionArtifact` containing file paths.
+    * `DataValidation` along with `DataValidationConfig` & `DataIngestionArtifact` will validate the column in all three datasets and check the data drift distribution between train-validation and train-test sets and outputs `DataValidationArtifact` containing file paths to valid, invalid  datasets and drift report.
+    * `DataTransformation` along with `DataTransformationConfig` & `DataValidationArtifact` will create a [scikit-learn](https://github.com/scikit-learn/scikit-learn) `Pipeline` object with all the data transformation strategies. This object is then used to `fit_transform()` on the train set and saved to file. This fitted pipeline object will be used to `transform()` the validation and test set. All three datasets are then converted to [numpy](https://github.com/numpy/numpy) arrays and then outputs `DataTransformationArtifact` containing the file paths.
+    * `ModelTrainer` along with `ModelTrainerConfig` & `DataTransformationArtifact` will train multiple models using `GridSearchCV` and then select the model that scores the highest on the validation set. This model is used to check performance on the test set. The best fit model along with the transformation pipeline object is then used to create a `NetworkModel` object for use in Inference Pipeline. It finally outputs `ModelTrainerArtifact` containing file paths.
+    * `ModelPusher` along with `ModelPusherConfig` & `ModelTrainerArtifact` will push the best fit model and the artifacts folder to AWS S3 Bucket using [AWS CLI](https://github.com/aws/aws-cli).
 
 Below is the Training Pipeline Flowchart. Flow chart images is [stored here](https://github.com/vikas-gits-good/P-1_Real_IPO-Listing-Price-Prediction/tree/main/docs/Images/).
 
@@ -52,8 +51,8 @@ Below is the Training Pipeline Flowchart. Flow chart images is [stored here](htt
 
 
 3. **Inference Pipeline:** Get current months data and use best fit model to predict listing gains.
-    * **MakeIPOPrediction** uses **MongoDBConfig** to get current month's company data for prediction.
-    * **NetworkModel** containing the best fit model and data transformation pipeline object is used to transform the prediction dataset. `predict()` method is called to make the prediction.
+    * `MakeIPOPrediction` uses `MongoDBConfig` to get current month's company data for prediction.
+    * `NetworkModel` containing the best fit model and data transformation pipeline object is used to transform the prediction dataset. `predict()` method is called to make the prediction.
     * The predicted output is then appended with the prediction dataset and then sent back to dedicated collection in MongoDB for display in the Web App.
 
 Below is the Inference Pipeline Flowchart. Flow chart images is [stored here](https://github.com/vikas-gits-good/P-1_Real_IPO-Listing-Price-Prediction/tree/main/docs/Images/).
@@ -114,7 +113,7 @@ Below is a gif of the GUI. gif is [stored here](https://github.com/vikas-gits-go
 <img src="./docs//Images//gui-gif.gif" alt="GUI gif" style="width:auto; height:auto;" align="center">
 
 ## Secrets
-Mutiple APIs were used for this project. These secrets were setup in GitHub Actions for use in CI/CD pipeline to pass as environment variables when the container is run. The following is a list of secrets used.
+Multiple APIs were used for this project. These secrets were setup in GitHub Actions for use in CI/CD pipeline to pass as environment variables when the container is run. The following is a list of secrets used.
 
 |Name|Description|
 | --- | --- |

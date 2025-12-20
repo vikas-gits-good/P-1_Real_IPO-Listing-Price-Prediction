@@ -14,6 +14,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 
 from logging import Logger
+from src.Constants import data_validation
 from src.Logging.logger import log_etl, log_trn, log_prd
 from src.Exception.exception import CustomException, LogException
 from src.Utils.ml_utils import get_model_scores
@@ -135,6 +136,44 @@ def read_model_object(file_path: str = None) -> NetworkModel:
         raise CustomException(e)
 
 
+def _set_dtypes(
+    data: pd.DataFrame,
+    purpose: Literal["get", "put"] = "get",
+    log: Logger = log_trn,
+    prefix: str = "Data Ingestion",
+) -> pd.DataFrame:
+    try:
+        log.info(f"{prefix}: Setting dtypes to data")
+        df = data.copy()
+        dtype_config = read_yaml_file(data_validation.SCHEMA_FILE_PATH)
+        dtype_orig = dtype_config["columns"]
+        dtype_flat_all = {k: v for d in dtype_orig for k, v in d.items()}
+        date_cols = [
+            key for key, val in dtype_flat_all.items() if val == "datetime64[ns]"
+        ]
+        if purpose == "get":  # when getting data, convert str to datetime
+            for col in date_cols:
+                df[col] = pd.to_datetime(df[col], format="%Y-%m-%d", errors="coerce")
+            dtype_flat = {k: v for d in dtype_orig for k, v in d.items() if v != "str"}
+            df = df.astype(dtype_flat)
+
+        elif purpose == "put":
+            for col in date_cols:  # when putting data, convert datetime to str
+                df[col] = df[col].dt.strftime("%Y-%m-%d")
+            dtype_flat = {
+                k: v
+                for k, v in dtype_flat_all.items()
+                if k not in date_cols and v != "str"
+            }
+            df = df.astype(dtype_flat)
+
+    except Exception as e:
+        LogException(e, logger=log)
+        raise CustomException(e)
+
+    return df
+
+
 def get_df_from_MongoDB(
     collection: Literal[
         "IPOPredMain", "IPOPredOrig", "IPOPredTest", "IPOPredArcv"
@@ -151,7 +190,6 @@ def get_df_from_MongoDB(
         log.info(f"{prefix}: Communicating with MongoDB: {database_name}/{collection}")
         mongo_client = MongoClient(db_config.mongo_db_url)
         collections = mongo_client[database_name][collection]
-        # today = datetime(2025, 9, 5)
         today = pd.to_datetime(datetime.today())
 
         log.info(f"{prefix}: Preprocessing dataframe")
@@ -159,7 +197,8 @@ def get_df_from_MongoDB(
         df.drop_duplicates(inplace=True, ignore_index=True)
         if "_id" in df.columns:
             df.drop(columns=["_id"], inplace=True)
-        df.replace({"na": np.nan}, inplace=True)
+        df = df.replace(["na", "nan", "null", "None", "", None], np.nan, inplace=False)
+        df = _set_dtypes(data=df, purpose="get", log=log, prefix=prefix)
 
         if pipeline == "etl":
             pass
@@ -167,30 +206,36 @@ def get_df_from_MongoDB(
         elif pipeline == "train":
             log.info(f"{prefix}: Dropping unlisted company data")
             df = df.dropna(subset=["IPO_listing_price"], ignore_index=True)
-            df = df.loc[df["IPO_day3_qib"] != "error", :]
+            df = df.loc[df["IPO_day3_qib"].notna(), :]
 
             last_month = today - relativedelta(months=1)
             end_date = last_month.replace(day=1)
 
             log.info(f"{prefix}: Selecting data till {end_date.strftime('%Y %B')}.")
-            df["IPO_open_date"] = pd.to_datetime(
-                df["IPO_open_date"], errors="raise", format="%Y-%m-%d"
-            )
             month_filt = df["IPO_open_date"] < end_date
             df = df.loc[month_filt, :]
-            df["IPO_open_date"] = df["IPO_open_date"].dt.strftime("%Y-%m-%d")
 
         elif pipeline == "predict":
             log.info(f"{prefix}: Selecting {today.strftime('%Y %B')}'s company data")
             # skip prediction for columns whose subscription data is unavailable
             # might extend this later to other columns like gmp as well
-            df = df.loc[df["IPO_day2_qib"] != "error", :]
-            df["IPO_open_date"] = pd.to_datetime(df["IPO_open_date"], errors="coerce")
+            df = df.loc[df["IPO_day2_qib"].notna(), :]
+
+            # incase of recreating IPOPredArcv
+            # chk_month = datetime(2025, month=9, day=1)
+
             month_filt = (df["IPO_open_date"].dt.year == today.year) & (
-                df["IPO_open_date"].dt.month == today.month
+                df["IPO_open_date"].dt.month == today.month  # > chk_month.month  #
             )
             df = df.loc[month_filt, :]
-            df["IPO_open_date"] = df["IPO_open_date"].dt.strftime("%Y-%m-%d")
+            # reverse order on IPO_open_date
+            df.sort_values(
+                "IPO_open_date",
+                axis=0,
+                inplace=True,
+                ignore_index=True,
+                ascending=False,
+            )
 
         elif pipeline == "archive":
             # only get data from 01-09-2025 to last months
@@ -199,30 +244,38 @@ def get_df_from_MongoDB(
             end_date = last_month.replace(day=1) + relativedelta(months=1)
 
             log.info(
-                f"{prefix}: Selecting {start_date.strftime('%Y %B')} to {end_date.strftime('%Y %B')} company data"
+                f"{prefix}: Selecting {start_date.strftime('%Y %B')} to {last_month.strftime('%Y %B')} company data"
             )
-            df["IPO_open_date"] = pd.to_datetime(
-                df["IPO_open_date"], errors="raise", format="%Y-%m-%d"
-            )
+            # keep only required data based on time range
             month_filt = (df["IPO_open_date"] >= start_date) & (
                 df["IPO_open_date"] < end_date
             )
             df = df.loc[month_filt, :]
-            df["IPO_open_date"] = df["IPO_open_date"].dt.strftime("%Y-%m-%d")
+            # reverse order on IPO_open_date
+            df.sort_values(
+                "IPO_open_date",
+                axis=0,
+                inplace=True,
+                ignore_index=True,
+                ascending=False,
+            )
 
         elif pipeline == "latest":
             log.info(f"{prefix}: Selecting {today.strftime('%Y %B')}'s company data")
-            df["IPO_open_date"] = pd.to_datetime(
-                df["IPO_open_date"], errors="raise", format="%Y-%m-%d"
-            )
             month_filt = (df["IPO_open_date"].dt.year == today.year) & (
                 df["IPO_open_date"].dt.month == today.month
             )
             df = df.loc[month_filt, :]
-            df["IPO_open_date"] = df["IPO_open_date"].dt.strftime("%Y-%m-%d")
+            # reverse order on IPO_open_date
+            df.sort_values(
+                "IPO_open_date",
+                axis=0,
+                inplace=True,
+                ignore_index=True,
+                ascending=False,
+            )
 
         df.reset_index(drop=True, inplace=True)
-        log.info(f"Data from DB\n{df}")
         return df
 
     except Exception as e:
@@ -243,16 +296,17 @@ def df_to_json(data: pd.DataFrame = None) -> json.JSONEncoder:
 
 
 def put_df_to_MongoDB(
-    data: pd.DataFrame = None,
+    data: pd.DataFrame,
     collection: Literal[
         "IPOPredMain", "IPOPredOrig", "IPOPredTest", "IPOPredArcv"
     ] = "IPOPredMain",
     db_config: MongoDBConfig = MongoDBConfig(),
     log: Logger = log_etl,
     prefix: Literal["Loading", "Prediction"] = "Loading",
-) -> pd.DataFrame:
+):
     try:
         log.info(f"{prefix}: Converting dataframe to required format")
+        data = _set_dtypes(data=data, purpose="put", log=log, prefix=prefix)
         records = df_to_json(data)
 
         db_database_name = db_config.database
@@ -276,6 +330,25 @@ def put_df_to_MongoDB(
     except Exception as e:
         LogException(e, logger=log)
         raise CustomException(e)
+
+
+def delete_data_in_MongoDB(
+    search_col: str = "Chittorgarh_link",
+    search_data: list[str] = [""],
+    collection: Literal[
+        "IPOPredMain", "IPOPredOrig", "IPOPredTest", "IPOPredArcv"
+    ] = "IPOPredMain",
+    db_config: MongoDBConfig = MongoDBConfig(),
+) -> None:
+    try:
+        database_name = db_config.database
+        mongo_client = MongoClient(db_config.mongo_db_url)
+        collections = mongo_client[database_name][collection]
+        collections.delete_many({search_col: {"$in": search_data}})
+        print("Deleted items successfully")
+
+    except Exception as e:
+        print(f"Error while deleting. {e}")
 
 
 def evaluate_models(

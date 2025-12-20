@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from src.Logging.logger import log_trn
-from src.Exception.exception import CustomException
+from src.Exception.exception import CustomException, LogException
 from src.Constants import common_constants
 from src.Entity.config_entity import DataIngestionConfig
 from src.Entity.artifact_entity import DataIngestionArtifact
@@ -52,15 +52,19 @@ class DataIngestion:
             df_train, df_valid = train_test_split(
                 df_main,
                 train_size=self.data_ingestion_config.train_size,
-                random_state=self.data_ingestion_config.random_state,
+                random_state=common_constants.RANDOM,
                 stratify=df_main[common_constants.TARGET_COLUMN],
             )
+            df_train.to_pickle("./df_train.pkl")
+            df_valid.to_pickle("./df_valid_0.pkl")
             df_valid, df_test = train_test_split(
                 df_valid,
                 test_size=self.data_ingestion_config.test_size,
-                random_state=self.data_ingestion_config.random_state,
-                stratify=df_valid[common_constants.TARGET_COLUMN],
-            )
+                random_state=common_constants.RANDOM,
+                # stratify=df_valid[common_constants.TARGET_COLUMN],
+            )  # cat_1 has only 1 value causing issues. so disabling stratify
+            df_valid.to_pickle("./df_valid_1.pkl")
+            df_test.to_pickle("./df_test.pkl")
 
             log_trn.info("Data Ingestion: Saving ingested data to file")
             for data, path in [
@@ -81,5 +85,5 @@ class DataIngestion:
             return di_artf
 
         except Exception as e:
-            log_trn.info(f"Error: {e}")
+            LogException(e, logger=log_trn)
             raise CustomException(e)

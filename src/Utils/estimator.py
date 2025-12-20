@@ -5,14 +5,14 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
 
 from src.Logging.logger import log_trn
-from src.Exception.exception import CustomException
+from src.Exception.exception import CustomException, LogException
 
 
 class NetworkModel:
     def __init__(
         self,
-        preprocessor: Pipeline = None,
-        model: RandomForestClassifier = None,
+        preprocessor: Pipeline,
+        model: RandomForestClassifier,
         log: Logger = log_trn,
     ):
         try:
@@ -21,10 +21,10 @@ class NetworkModel:
             self.log = log
 
         except Exception as e:
-            self.log.info(f"Error: {e}")
+            LogException(e, logger=self.log)
             raise CustomException(e)
 
-    def to_dataframe(self, y: np.typing.NDArray = None) -> pd.DataFrame:
+    def _to_dataframe(self, y: np.typing.NDArray) -> pd.DataFrame:
         try:
             df_pred = pd.DataFrame()
             df_pred = pd.DataFrame(y, columns=["Predicted_IPO_listing_gain_category"])
@@ -55,12 +55,12 @@ class NetworkModel:
             return df_pred
 
         except Exception as e:
-            self.log(f"Error: {e}")
+            LogException(e, logger=self.log)
             raise CustomException(e)
             return df_pred
 
     def predict(
-        self, X: pd.DataFrame = None, y: pd.DataFrame = None
+        self, X: pd.DataFrame, y: pd.DataFrame | None = None
     ) -> np.typing.NDArray:
         try:
             # Use net_model.log = log_prd and then net_model.predict() during Prediction Pipeline
@@ -71,9 +71,9 @@ class NetworkModel:
             y_pred = self.model.predict(X=x_test_trfm)
 
             self.log.info("Prediction: Transforming prediction to required format")
-            df_pred = self.to_dataframe(y=y_pred)
+            df_pred = self._to_dataframe(y=y_pred)
             return df_pred
 
         except Exception as e:
-            self.log.info(f"Error: {e}")
+            LogException(e, logger=self.log)
             raise CustomException(e)

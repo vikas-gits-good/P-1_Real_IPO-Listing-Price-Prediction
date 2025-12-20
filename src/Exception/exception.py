@@ -24,7 +24,5 @@ def LogException(
     _, _, exc_tb = sys.exc_info()
     lineno = exc_tb.tb_lineno if exc_tb else None
     file_name = exc_tb.tb_frame.f_code.co_filename
-    log_msg = (
-        f"{prefix}: File - {file_name} , line - [{lineno}], error - [{str(error)}]"
-    )
+    log_msg = f"{prefix}: File - {file_name}:{lineno} , line - [{lineno}], error - [{str(error)}]"
     logger.info(log_msg)

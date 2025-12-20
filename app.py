@@ -12,10 +12,11 @@ from flask import Flask, request, render_template, send_file, abort, jsonify
 from src.Logging.logger import log_etl, log_trn, log_prd, log_flk
 from src.Exception.exception import CustomException, LogException
 
+from src.Constants import data_validation
 from src.Pipeline.ETL_pipeline import ETLPipeline
 from src.Pipeline.training_pipeline import TrainIPOPrediction
 from src.Pipeline.prediction_pipeline import MakeIPOPrediction
-from src.Utils.main_utils import get_df_from_MongoDB, get_model_paths
+from src.Utils.main_utils import get_df_from_MongoDB, get_model_paths, read_yaml_file
 
 
 class AplcOps:
@@ -159,6 +160,21 @@ class UtilOps:
         df_arcv = get_df_from_MongoDB(
             collection="IPOPredArcv", pipeline="archive", log=log_flk, prefix="Webpage"
         )
+
+        # De-fragments
+        df_ltst = df_ltst.copy()
+        df_arcv = df_arcv.copy()
+
+        # convert date columns to string
+        dtype_config = read_yaml_file(data_validation.SCHEMA_FILE_PATH)
+        dtype_orig = dtype_config["columns"]
+        dtype_flat_all = {k: v for d in dtype_orig for k, v in d.items()}
+        date_cols = [
+            key for key, val in dtype_flat_all.items() if val == "datetime64[ns]"
+        ]
+        for col in date_cols:
+            df_ltst[col] = df_ltst[col].dt.strftime("%Y-%m-%d")
+            df_arcv[col] = df_arcv[col].dt.strftime("%Y-%m-%d")
 
         # create a new gmp column with the latest gmp data
         cols_gmp = [f"day{i}_price" for i in range(1, 34)]

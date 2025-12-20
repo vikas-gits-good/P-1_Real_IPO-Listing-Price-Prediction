@@ -120,7 +120,7 @@ class DataTransformation:
             LogException(e)
             raise CustomException(e)
 
-    def create_pipeline_object(self, columns: List[str] = None) -> Pipeline:
+    def create_pipeline_object(self, columns: List[str]) -> Pipeline:
         try:
             ppln_prpc = Pipeline(
                 [

@@ -29,7 +29,7 @@ class ExtractData:
             log_etl.info("Extraction: Filtering data to scrape")
             df_main = CheckDatabase(Data=df_main, drop_sme=True).filter()
 
-            log_etl.info("Extraction: Getting companies' details")
+            log_etl.info("Extraction: Getting companies' IPO details")
             df_main = await IPODataExtractor(Data=df_main).extract()
 
             log_etl.info("Extraction: Getting companies' screener data")

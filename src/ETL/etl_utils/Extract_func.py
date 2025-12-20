@@ -6,29 +6,24 @@ import numpy as np
 import pandas as pd
 from lxml import html
 from pyotp import TOTP
-from bs4 import BeautifulSoup
 from datetime import datetime
-from pymongo import MongoClient
 from SmartApi import SmartConnect
-from dateutil.parser import parse
 from typing import List, Literal, Tuple
 
-from crawl4ai import AsyncWebCrawler
-from crawl4ai.async_configs import BrowserConfig, CrawlerRunConfig
-from crawl4ai.extraction_strategy import JsonCssExtractionStrategy
-
+from crawl4ai.async_webcrawler import AsyncWebCrawler
 
 from src.Logging.logger import log_etl
 from src.Exception.exception import CustomException, LogException
 from src.Entity.config_entity import AngelOneConfig
 from src.ETL.etl_config.ETL_config import (
-    GMPCrawlerConfig,
     ScreenerCSSCrawlerConfig,
     ScreenerHTMLCrawlerConfig,
     BSECrawlerConfig,
     CompanyCrawlConfig,
+    GMPCrawlerConfig,
+    ScrapeConfig,
 )
-from src.Entity.config_entity import MongoDBConfig
+from src.ETL.etl_utils.scrape_func import IPOScraper
 from src.Utils.main_utils import get_df_from_MongoDB
 
 
@@ -88,496 +83,422 @@ class CompanyListExtractor:
 
 
 class IPODataExtractor:
-    def __init__(
-        self,
-        Data: pd.DataFrame = None,
-        CrawlerConfig: GMPCrawlerConfig = None,
-    ):
+    def __init__(self, Data: pd.DataFrame):
         self.urls = Data["Company_info_url"].to_list()
         self.data = Data
-        CrawlerConfig = (
-            GMPCrawlerConfig(max_parallel=10, len_list=len(self.urls))
-            if CrawlerConfig is None
-            else CrawlerConfig
-        )
-        self.browser_config = CrawlerConfig.browser_config
-        self.crawler_run_config = CrawlerConfig.crawler_run_config
-        self.rate_limiter = CrawlerConfig.rate_limiter
-        self.memory_adap_dispatcher = CrawlerConfig.memory_adap_dispatcher
 
-    def safe_calc(self, func):
-        try:
-            return func()
-        except Exception as e:
-            LogException(e)
-            return "error"
-
-    def get_ipo_detail(self, results):
-        df_ipo = pd.DataFrame()
-        for result in results:
-            details = {
-                "result_link": [result.url],
-                "IPO_open_date": ["error"],
-                "IPO_close_date": ["error"],
-                "IPO_list_date": ["error"],
-                "IPO_face_value": ["error"],
-                "IPO_issue_price": ["error"],
-                "IPO_lot_size": ["error"],
-                "IPO_issue_size": ["error"],
+    async def get_ipo_detail(self, results):
+        urls = [result.url for result in results]
+        df_ipo = pd.DataFrame(
+            {
+                "result_link": urls,
+                "IPO_open_date": [np.nan] * len(urls),
+                "IPO_close_date": [np.nan] * len(urls),
+                "IPO_list_date": [np.nan] * len(urls),
+                "IPO_face_value": [np.nan] * len(urls),
+                "IPO_issue_price": [np.nan] * len(urls),
+                "IPO_lot_size": [np.nan] * len(urls),
+                "IPO_issue_size": [np.nan] * len(urls),
             }
-            soup = BeautifulSoup(result.cleaned_html, "html.parser")
-            tables = soup.find_all("table")
-            target_table = None
-            # print(tables)
+        )
+        try:
+            # scrape data
+            df_ipo = await IPOScraper(
+                urls=urls,
+                purpose="detail",
+                config=ScrapeConfig(len_list=len(urls)),
+            ).scrape()
 
-            for table in tables:
-                header_cells = table.find_all(["th", "td"])
-                if any(
-                    (cell.get_text(strip=True) == "IPO Date") for cell in header_cells
-                ):
-                    target_table = table
-                    break
-
-            if not target_table:
-                log_etl.info(f"Extraction: IPO details table not found in {result.url}")
-                df_ipo = pd.concat(
-                    [df_ipo, pd.DataFrame(details)], axis=0, ignore_index=True
-                )
-                continue
-            # print(target_table)
-
-            rows = target_table.find_all("tr")
-            cols = [row.find_all("td") for row in rows]
-
-            details["IPO_open_date"] = [
-                self.safe_calc(
-                    lambda: datetime.strptime(
-                        cols[0][-1].get_text(strip=True).split(" to ")[0],
-                        "%B %d, %Y",
-                    ).strftime("%Y-%m-%d")
-                )
+            # filter columns
+            list_ipo_details = [
+                "detail_url",
+                "IPO Open Date",
+                "IPO Close Date",
+                "Listed on",
+                "Tentative Listing Date",
+                "Face Value",
+                "Issue Price",
+                "Price Band",
+                "Lot Size",
+                "Total Issue Size",
             ]
+            df_ipo = df_ipo.loc[:, list_ipo_details]
 
-            details["IPO_close_date"] = [
-                self.safe_calc(
-                    lambda: datetime.strptime(
-                        cols[0][-1].get_text(strip=True).split(" to ")[1],
-                        "%B %d, %Y",
-                    ).strftime("%Y-%m-%d")
-                )
-            ]
+            # datatype map
+            dict_fmt = {
+                "IPO Open Date": lambda x: np.nan
+                if pd.isna(x)
+                else datetime.strptime(x, "%a, %b %d, %Y").strftime("%Y-%m-%d"),
+                "IPO Close Date": lambda x: np.nan
+                if pd.isna(x)
+                else datetime.strptime(x, "%a, %b %d, %Y").strftime("%Y-%m-%d"),
+                "Listed on": lambda x: np.nan
+                if pd.isna(x) or x == "[.]"
+                else datetime.strptime(x, "%a %b %d %Y").strftime("%Y-%m-%d"),
+                "Tentative Listing Date": lambda x: np.nan
+                if pd.isna(x)
+                else datetime.strptime(x, "%a, %b %d, %Y").strftime("%Y-%m-%d"),
+                "Face Value": lambda x: int(re.findall(r"\d+", x)[0]),
+                "Issue Price": lambda x: np.nan
+                if pd.isna(x) or x == "[.]"
+                else int(re.findall(r"\d+", x)[0]),
+                "Price Band": lambda x: int(re.findall(r"\d+", x)[1]),
+                "Lot Size": lambda x: int(re.findall(r"\d+", x)[0]),
+                "Total Issue Size": lambda x: float(re.findall(r"₹([^C]+?)Cr", x)[0]),
+            }
 
-            def extract_ipo_list_date(cols):
-                date = "error"
-                try:
-                    date_string = cols[1][-1].get_text(strip=True)
-                    date = datetime.strptime(date_string, "%B %d, %Y").strftime(
-                        "%Y-%m-%d"
-                    )
-                except Exception as e:
-                    log_etl.info(
-                        f"Error from {result.url}: {e}. Using tentative listing date."
-                    )
-                    LogException(e)
-                    for table in tables:
-                        header_cells = table.find_all(["th", "td"])
-                        if any(
-                            (cell.get_text(strip=True) == "Tentative Listing Date")
-                            for cell in header_cells
-                        ):
-                            target_table = table
-                            break
-                    try:
-                        rows = target_table.find_all("tr")
-                        for row in rows:
-                            cols_inner = row.find_all("td")
-                            if (
-                                cols_inner
-                                and cols_inner[0].get_text(strip=True)
-                                == "Tentative Listing Date"
-                            ):
-                                date_str = cols_inner[1].get_text(strip=True)
-                                date = datetime.strptime(
-                                    date_str, "%a, %b %d, %Y"
-                                ).strftime("%Y-%m-%d")
-                    except Exception as e_inner:
-                        log_etl.info(f"Error parsing tentative listing date: {e_inner}")
-                        LogException(e)
-                        date = "error"
-                return date
+            # clean and typecast
+            for col, formatter in dict_fmt.items():
+                if col in df_ipo.columns:
+                    df_ipo[col] = df_ipo[col].map(formatter)
 
-            details["IPO_list_date"] = [
-                self.safe_calc(lambda: extract_ipo_list_date(cols))
-            ]
-
-            details["IPO_face_value"] = [
-                self.safe_calc(
-                    lambda: int(
-                        re.findall(
-                            r"\d{1,3}(?:,\d{2})*(?:,\d{3})(?:\.\d+)?|\d+(?:\.\d+)?",
-                            cols[2][-1].get_text(strip=True).replace(",", ""),
-                        )[-1]
-                    )
-                )
-            ]
-            details["IPO_issue_price"] = [
-                self.safe_calc(
-                    lambda: int(
-                        re.findall(
-                            r"\d{1,3}(?:,\d{2})*(?:,\d{3})(?:\.\d+)?|\d+(?:\.\d+)?",
-                            cols[3][-1].get_text(strip=True).replace(",", ""),
-                        )[-1]
-                    )
-                )
-            ]
-
-            def extract_lot_size(cols):
-                regex = r"\d{1,3}(?:,\d{2})*(?:,\d{3})(?:\.\d+)?|\d+(?:\.\d+)?"
-                data = (
-                    cols[5][-1].get_text(strip=True).replace(",", "")
-                    if "per share" in cols[4][-1].get_text(strip=True).replace(",", "")
-                    else cols[4][-1].get_text(strip=True).replace(",", "")
-                )
-                size = int(re.findall(regex, data)[-1])
-                return size
-
-            details["IPO_lot_size"] = [self.safe_calc(lambda: extract_lot_size(cols))]
-
-            def extract_issue_size(cols):
-                regex_pattern = r"\d{1,3}(?:,\d{2})*(?:,\d{3})(?:\.\d+)?|\d+(?:\.\d+)?"
-                text6 = cols[6][-1].get_text(strip=True)
-                matches6 = re.findall(regex_pattern, text6)
-                if matches6:
-                    return float(matches6[-1].replace(",", "")) * 10**7
-                else:
-                    text7 = cols[7][-1].get_text(strip=True)
-                    matches7 = re.findall(regex_pattern, text7)
-                    return float(matches7[-1].replace(",", "")) * 10**7
-
-            details["IPO_issue_size"] = [
-                self.safe_calc(lambda: extract_issue_size(cols))
-            ]
-
-            df_ipo = pd.concat(
-                [df_ipo, pd.DataFrame(details)], axis=0, ignore_index=True
+            # replace missing values
+            df_ipo["Listed on"] = df_ipo["Listed on"].fillna(
+                df_ipo["Tentative Listing Date"]
             )
+            df_ipo["Issue Price"] = df_ipo["Issue Price"].fillna(df_ipo["Price Band"])
+
+            # rename columns
+            repl_cols = {
+                "detail_url": "result_link",
+                "IPO Open Date": "IPO_open_date",
+                "IPO Close Date": "IPO_close_date",
+                "Listed on": "IPO_list_date",
+                "Face Value": "IPO_face_value",
+                "Issue Price": "IPO_issue_price",
+                "Lot Size": "IPO_lot_size",
+                "Total Issue Size": "IPO_issue_size",
+            }
+            df_ipo.rename(columns=repl_cols, inplace=True)
+
+            # drop remaining columns
+            df_ipo.drop(columns=["Tentative Listing Date", "Price Band"], inplace=True)
+
+        except Exception as e:
+            LogException(e, logger=log_etl)
+            # raise CustomException(e)
+
+        # df_ipo.to_pickle("./z_check_data/ipo_details.pkl")
         return df_ipo
 
-    def get_rhp_doc(self, urls: list[str] = None):
+    def get_rhp_doc(self, urls: list[str]):
+        df_rhp = pd.DataFrame(
+            {"rhp_link": [link for link in urls]},
+        )
         try:
-            df_rhp = pd.DataFrame(
-                {"rhp_link": [link for link in urls]},
-            )
             # This function is supposed to process pdf and extract some company financial
             # and risk factor data but I'll do that later
-            return df_rhp
+            pass
+
         except Exception as e:
-            LogException(e)
-            return df_rhp
+            LogException(e, logger=log_etl)
             # raise CustomException(e)
+
+        return df_rhp
 
     async def get_gmp_link(self, urls: list[str]):
+        df_gmp = pd.DataFrame(
+            {
+                **{"gmp_link": [link for link in urls]},
+                **{
+                    f"day{i}_{m}": [np.nan] * len(urls)
+                    for i in range(1, 4)
+                    for m in ["date", "price"]
+                },
+            }
+        )
         try:
-            data = pd.DataFrame(
-                {
-                    **{"gmp_link": [link for link in urls]},
-                    **{
-                        f"day{i}_{m}": [np.nan] * len(urls)
-                        for i in range(1, 4)
-                        for m in ["date", "price"]
-                    },
-                }
-            )
-            df_gmp = await GMPDataExtractor(reorder_dates=True).extract(urls=urls)
-            return df_gmp
+            # scrape
+            df_gmp = await IPOScraper(
+                urls=urls,
+                purpose="grmkpt",
+                config=ScrapeConfig(len_list=len(urls)),
+            ).scrape()
 
-        except Exception as e:
-            LogException(e)
-            return data
-            # raise CustomException(e)
+            # filter data
+            metrics = ["Date", "GMP"]
+            gmp_cols_list = ["grmkpt_url"] + [
+                col
+                for col in df_gmp.columns  # dynamic selection
+                if re.match(
+                    r"Day_\d+_(?:" + "|".join(re.escape(m) for m in metrics) + r")", col
+                )
+            ]
+            df_gmp = df_gmp.loc[:, gmp_cols_list]
 
-    async def get_ipo_review(self, urls: list[str] = None):
-        try:
-            df_rvw = pd.DataFrame()
-            async with AsyncWebCrawler(config=self.browser_config) as crawler:
-                results = await crawler.arun_many(
-                    urls=urls,
-                    config=self.crawler_run_config,
-                    dispatcher=self.memory_adap_dispatcher,
+            # convert dtypes
+            date_cols = [col for col in gmp_cols_list if "Date" in col]
+            gmp_cols = [col for col in gmp_cols_list if "GMP" in col]
+            for col in date_cols:
+                df_gmp[col] = pd.to_datetime(
+                    df_gmp[col], format="%d-%m-%Y", errors="coerce"
+                ).dt.strftime("%Y-%m-%d")
+            for col in gmp_cols:
+                df_gmp[col] = (
+                    df_gmp[col].str.replace("₹", "", regex=False).astype("float64")
                 )
 
-                for result in results:
-                    try:
-                        review = {
-                            **{"review_link": [result.url]},
-                            **{
-                                f"IPO_{i}_{m}": ["error"]
-                                for i in ["Broker", "Member"]
-                                for m in ["apply", "neutral", "avoid"]
-                            },
-                        }
-                        # reviews = {key: val * len(urls) for key, val in review.items()}
-                        soup = BeautifulSoup(result.cleaned_html, "html.parser")
-                        tables = soup.find_all("table")
-                        matching_tables = []
+            # rename columns
+            repl_cols = {"grmkpt_url": "gmp_link"}
+            for i in range(len(date_cols)):  # dynamic rename
+                for m, n in zip(["date", "price"], ["Date", "GMP"]):
+                    old_col = f"day{i + 1}_{m}"
+                    new_col = f"Day_{i + 1}_{n}"
+                    repl_cols[new_col] = old_col
+            df_gmp.rename(columns=repl_cols, inplace=True)
 
-                        for table in tables:
-                            header_cells = table.find_all(["th", "td"])
-                            if any(
-                                cell.get_text(strip=True) == "Review By"
-                                for cell in header_cells
-                            ):
-                                matching_tables.append(table)
+            # rearrange columns
+            def reorder_dates(data: pd.DataFrame) -> pd.DataFrame:
+                df = data.copy()
+                iters = range(1, int((len(df.columns) - 1) / 2 + 1))
+                date_cols = [f"day{i}_date" for i in iters]
+                price_cols = [f"day{i}_price" for i in iters]
 
-                        if not matching_tables:
-                            log_etl.info(
-                                f"Extraction: Review table not found in {result.url}"
-                            )
-                            df_rvw = pd.concat(
-                                [df_rvw, pd.DataFrame(review)],
-                                axis=0,
-                                ignore_index=True,
-                            )
-                            continue
-                        # print(matching_tables)
+                for day in date_cols:
+                    df[day] = pd.to_datetime(df[day], errors="coerce")
 
-                        def get_reviews(table, prefix: str):
-                            rows = table.find_all("tr")
-                            cols = rows[1].find_all("td")
-                            rvw = {}
+                dates_array = df[date_cols].to_numpy()
+                prices_array = df[price_cols].to_numpy()
 
-                            rvw[f"IPO_{prefix}_apply"] = [
-                                self.safe_calc(
-                                    lambda: int(
-                                        cols[1].get_text(strip=True).replace(",", "")
-                                    )
-                                    + int(cols[2].get_text(strip=True).replace(",", ""))
-                                )
-                            ]
-                            rvw[f"IPO_{prefix}_neutral"] = [
-                                self.safe_calc(
-                                    lambda: int(
-                                        cols[3].get_text(strip=True).replace(",", "")
-                                    )
-                                )
-                            ]
-                            rvw[f"IPO_{prefix}_avoid"] = [
-                                self.safe_calc(
-                                    lambda: int(
-                                        cols[4].get_text(strip=True).replace(",", "")
-                                    )
-                                )
-                            ]
-                            return rvw
+                def sort_dates_prices(dates, prices):
+                    idx_sorted = np.argsort(dates, axis=1, kind="stable")
+                    sorted_dates = np.take_along_axis(dates, idx_sorted, axis=1)
+                    sorted_prices = np.take_along_axis(prices, idx_sorted, axis=1)
+                    return sorted_dates, sorted_prices
 
-                        _ = [
-                            review.update(
-                                get_reviews(table=matching_tables[i], prefix=prf)
-                            )
-                            for i, prf in enumerate(["Broker", "Member"])
-                        ]
-                        df_rvw = pd.concat(
-                            [df_rvw, pd.DataFrame(review)], axis=0, ignore_index=True
-                        )
-                        # print(reviews)
-                    except Exception as e:
-                        log_etl.info(
-                            f"Error in get_ipo_review() from {result.url}. Error: {e}"
-                        )
-                        df_rvw = pd.concat(
-                            [df_rvw, pd.DataFrame(review)], axis=0, ignore_index=True
-                        )
-                        # raise CustomException(e)
-            return df_rvw
+                sorted_dates_array, sorted_prices_array = sort_dates_prices(
+                    dates_array, prices_array
+                )
+
+                df[date_cols] = sorted_dates_array
+                df[price_cols] = sorted_prices_array
+
+                return df
+
+            df_gmp = reorder_dates(df_gmp)
 
         except Exception as e:
-            LogException(e)
-            return df_rvw
+            LogException(e, logger=log_etl)
             # raise CustomException(e)
+
+        # df_gmp.to_pickle("./z_check_data/gmp_details.pkl")
+        return df_gmp
+
+    async def get_ipo_review(self, urls: list[str]):
+        df_rvw = pd.DataFrame(
+            {
+                **{"review_link": [url for url in urls]},
+                **{
+                    f"IPO_{i}_{m}": [np.nan] * len(urls)
+                    for i in ["Broker", "Member"]
+                    for m in ["apply", "neutral", "avoid"]
+                },
+            }
+        )
+        try:
+            # scrape data
+            df_rvw = await IPOScraper(
+                urls=urls,
+                purpose="review",
+                config=ScrapeConfig(len_list=len(urls)),
+            ).scrape()
+
+            # filter columns
+            rvw_cols_list = [
+                "review_url",
+                "Broker Apply",
+                "Broker May Apply",
+                "Broker Neutral",
+                "Broker Avoid",
+                "Broker Not Rated",
+                "Member Apply",
+                "Member May Apply",
+                "Member Not Rated",
+                "Member Avoid",
+            ]
+            df_rvw = df_rvw.loc[:, rvw_cols_list]
+
+            # convert dtypes
+            int_cols = df_rvw.columns[1:]
+            df_rvw[int_cols] = (
+                df_rvw[int_cols].apply(pd.to_numeric, errors="coerce").astype("Int64")
+            )
+
+            # sum columns
+            df_rvw["Broker Apply"] += df_rvw["Broker May Apply"]
+            df_rvw["Member Apply"] += df_rvw["Member May Apply"]
+
+            # add column
+            df_rvw["Member Neutral"] = (
+                pd.Series([0] * df_rvw.shape[0])
+                if "Member Neutral" not in df_rvw.columns
+                else df_rvw["Member Neutral"]
+            )
+
+            # rename columns
+            repl_cols = {
+                "review_url": "review_link",
+                "Broker Apply": "IPO_Broker_apply",
+                "Broker Neutral": "IPO_Broker_neutral",
+                "Broker Avoid": "IPO_Broker_avoid",
+                "Member Apply": "IPO_Member_apply",
+                "Member Neutral": "IPO_Member_neutral",
+                "Member Avoid": "IPO_Member_avoid",
+            }
+            df_rvw.rename(columns=repl_cols, inplace=True)
+
+            # drop remaining columns
+            drop_cols = [
+                "Broker May Apply",
+                "Broker Not Rated",
+                "Member May Apply",
+                "Member Not Rated",
+            ]
+            df_rvw.drop(columns=drop_cols, inplace=True)
+
+        except Exception as e:
+            LogException(e, logger=log_etl)
+            # raise CustomException(e)
+
+        # df_rvw.to_pickle("./z_check_data/rvw_details.pkl")
+        return df_rvw
 
     async def get_ipo_subscription(self, urls):
+        df_subsc = pd.DataFrame(
+            {
+                **{"subsc_link": [url for url in urls]},
+                **{
+                    f"IPO_day{i}_{m}": [np.nan] * len(urls)
+                    for i in range(1, 4)
+                    for m in ["qib", "nii", "rtl"]
+                },
+            }
+        )
+
         try:
-            df_subsc = pd.DataFrame()
-            async with AsyncWebCrawler(config=self.browser_config) as crawler:
-                results = await crawler.arun_many(
-                    urls=urls,
-                    config=self.crawler_run_config,
-                    dispatcher=self.memory_adap_dispatcher,
+            # scrape data
+            df_subsc = await IPOScraper(
+                urls=urls,
+                purpose="sbscrp",
+                config=ScrapeConfig(len_list=len(urls)),
+            ).scrape()
+
+            # filter data
+            metrics = [
+                "Date",
+                "QIB",
+                "QIB (Ex Anchor)",
+                "NII",
+                "NII*",
+                "Retail",
+                "Individual Investors",
+            ]
+            sbs_cols_list = ["sbscrp_url"] + [  # Dynamic method to capture data
+                col
+                for col in df_subsc.columns
+                if re.match(
+                    r"Day \d+_(?:"
+                    + "|".join(re.escape(m) for m in metrics)
+                    + r")(?!\s*\()",
+                    col,
+                )
+            ]
+            df_subsc = df_subsc.loc[:, sbs_cols_list]
+
+            # convert dtypes
+            date_cols = [col for col in df_subsc.columns if metrics[0] in col]
+            numeric_cols = [
+                col
+                for col in df_subsc.columns
+                if any(metric in col for metric in metrics[1:])
+            ]
+            for col in date_cols:
+                df_subsc[col] = pd.to_datetime(
+                    df_subsc[col], format="%b %d %Y", errors="coerce"
+                ).dt.strftime("%Y-%m-%d")
+            for col in numeric_cols:
+                df_subsc[col] = pd.to_numeric(df_subsc[col], errors="coerce").astype(
+                    "float64"
                 )
 
-                for result in results:
-                    try:
-                        subsc = {
-                            **{"subsc_link": [result.url]},
-                            **{
-                                f"IPO_day{i}_{m}": ["error"]
-                                for i in range(1, 4)
-                                for m in ["qib", "nii", "rtl"]
-                            },
-                        }
-                        soup = BeautifulSoup(result.cleaned_html, "html.parser")
-                        tables = soup.find_all("table")
-                        target_table = None
-                        # print(tables)
+            # rename cols
+            itr = int((len(sbs_cols_list) - 1) / 3)
+            repl_cols = {"sbscrp_url": "subsc_link"}
+            day_cols = [col for col in sbs_cols_list[1:] if "Date" not in col]
+            for i in range(itr):
+                start_idx = i * 3  # Dynamic method for column remapper
+                for j, m in enumerate(["qib", "nii", "rtl"]):
+                    if start_idx + j < len(day_cols):
+                        old_col = day_cols[start_idx + j]
+                        new_col = f"IPO_day{i + 1}_{m}"
+                        repl_cols[old_col] = new_col
+            # repl_cols
+            df_subsc.rename(columns=repl_cols, inplace=True)
 
-                        for table in tables:
-                            header_cells = table.find_all(["th", "td"])
-                            if any(
-                                (cell.get_text(strip=True) == "Date")
-                                for cell in header_cells
-                            ):
-                                target_table = table
-                                break
-
-                        if not target_table:
-                            log_etl.info(
-                                f"Extraction: Subscription table not found in {result.url}"
-                            )
-                            df_subsc = pd.concat(
-                                [df_subsc, pd.DataFrame(subsc)],
-                                axis=0,
-                                ignore_index=True,
-                            )
-                            continue
-                        # print(target_table)
-
-                        rows = target_table.find_all("tr")
-                        header_cells = rows[0].find_all(["th", "td"])
-                        header_indices = {}
-                        for idx, cell in enumerate(header_cells):
-                            text = cell.get_text(strip=True)
-                            if text in [
-                                "QIB",
-                                "NII",
-                                "Retail",
-                                "QIB (Ex Anchor)",
-                                "NII*",
-                                "Individual Investors",
-                            ]:
-                                header_indices[text] = idx
-
-                        for i, row in enumerate(rows[1:], start=1):
-                            cols = row.find_all("td")
-                            idx_qib = header_indices.get(
-                                "QIB", header_indices.get("QIB (Ex Anchor)")
-                            )
-                            idx_nii = header_indices.get(
-                                "NII", header_indices.get("NII*")
-                            )
-                            idx_rtl = header_indices.get(
-                                "Retail", header_indices.get("Individual Investors")
-                            )
-
-                            subsc[f"IPO_day{i}_qib"] = [
-                                self.safe_calc(
-                                    lambda: float(
-                                        cols[idx_qib]
-                                        .get_text(strip=True)
-                                        .replace(",", "")
-                                    )
-                                )
-                            ]
-                            subsc[f"IPO_day{i}_nii"] = [
-                                self.safe_calc(
-                                    lambda: float(
-                                        cols[idx_nii]
-                                        .get_text(strip=True)
-                                        .replace(",", "")
-                                    )
-                                )
-                            ]
-                            subsc[f"IPO_day{i}_rtl"] = [
-                                self.safe_calc(
-                                    lambda: float(
-                                        cols[idx_rtl]
-                                        .get_text(strip=True)
-                                        .replace(",", "")
-                                    )
-                                )
-                            ]
-                        df_subsc = pd.concat(
-                            [df_subsc, pd.DataFrame(subsc)], axis=0, ignore_index=True
-                        )
-                        # print(subsc)
-                    except Exception as e:
-                        log_etl.info(
-                            f"Error in get_ipo_subscription() from {result.url}. Error: {e}"
-                        )
-                        df_subsc = pd.concat(
-                            [df_subsc, pd.DataFrame(subsc)], axis=0, ignore_index=True
-                        )
-                        # raise CustomException(e)
-            # print(df_subsc)
-            return df_subsc
+            # drop columns
+            drop_cols = [col for col in sbs_cols_list[1:] if "Date" in col]
+            df_subsc.drop(columns=drop_cols, inplace=True)
 
         except Exception as e:
-            LogException(e)
-            return df_subsc
+            LogException(e, logger=log_etl)
             # raise CustomException(e)
+
+        # df_subsc.to_pickle("./z_check_data/sbs_details.pkl")
+        return df_subsc
 
     async def extract(self):
         df_lnk = self.data.copy()
+        config = ScrapeConfig(len_list=len(self.urls))
 
-        async with AsyncWebCrawler(config=self.browser_config) as crawler:
+        async with AsyncWebCrawler(config=config.browser_config) as crawler:
             results = await crawler.arun_many(
-                self.urls,
-                config=self.crawler_run_config,
-                dispatcher=self.memory_adap_dispatcher,
+                urls=self.urls,
+                config=config.rncf_ipo_links,
+                dispatcher=config.mem_ada_dispatcher,
             )
 
-            keys = ["result_link", "rhp_link", "review_link", "subsc_link", "gmp_link"]
-            urls_dict = {key: [] for key in keys}
+            def _get_relevant_links(results):
+                map_dict = {
+                    "Reviews": "review_link",
+                    "Subscription": "subsc_link",
+                    "DRHP": "rhp_link",
+                    "GMP": "gmp_link",
+                }
+                urls_dict = {
+                    "result_link": [result.url for result in results],
+                    **{key: [] * len(map_dict.keys()) for key in map_dict.values()},
+                }
+                links_int = [result.links.get("internal", []) for result in results]
+                links_ext = [result.links.get("external", []) for result in results]
 
-            for result in results:
-                # ipo data link
-                result_link = result.url
+                for key in list(map_dict.keys())[:2]:
+                    for website in links_int:
+                        for link in website:
+                            if link["text"] == key:
+                                urls_dict[map_dict[key]].append(link["href"])
 
-                # RHP document link
-                rhp_pattern = r"\* \[!\[RHP External link\]\(.*?\)RHP\]\((.*?)\)|\* \[!\[DRHP External link\]\(.*?\)DRHP\]\((.*?)\)"
-                rhp_match = re.search(rhp_pattern, result.markdown)
-                rhp_link = (
-                    next((group for group in rhp_match.groups() if group), None)
-                    if rhp_match
-                    else None
-                )
+                for key in list(map_dict.keys())[2:]:
+                    for website in links_ext:
+                        for link in website:
+                            if link["text"] == key:
+                                urls_dict[map_dict[key]].append(link["href"])
 
-                # review link
-                review_pattern = (
-                    r'\[Review\]\((.*?) "(?:IPO Reviews & Recommendation)"\)'
-                )
-                review_match = re.search(review_pattern, result.markdown)
-                review_link = review_match.group(1) if review_match else None
-
-                # subscription link
-                subscription_pattern = (
-                    r'\[Subscription\]\((.*?) "(?:IPO Live Subscription)"\)'
-                )
-                subscription_match = re.search(subscription_pattern, result.markdown)
-                subscription_link = (
-                    subscription_match.group(1) if subscription_match else None
-                )
-
-                # gmp link
-                gmp_pattern = r'\[GMP\]\((.*?) "(?:IPO GMP)"\)'
-                gmp_match = re.search(gmp_pattern, result.markdown)
-                gmp_link = gmp_match.group(1) if gmp_match else None
-
-                # combine and update
-                data_links = [
-                    result_link,
-                    rhp_link,
-                    review_link,
-                    subscription_link,
-                    gmp_link,
+                keys = [
+                    "result_link",
+                    "rhp_link",
+                    "review_link",
+                    "subsc_link",
+                    "gmp_link",
                 ]
-                _ = [
-                    urls_dict[key].append(val)
-                    for key, val in zip(urls_dict.keys(), data_links)
-                ]
+                urls_dict = {key: urls_dict[key] for key in keys}
+                return urls_dict
+
+            urls_dict = _get_relevant_links(results)
+            keys = list(urls_dict.keys())
 
             try:
                 log_etl.info("Extraction: Scraping IPO details")
-                df_ipo = self.get_ipo_detail(results=results)
+                df_ipo = await self.get_ipo_detail(results=results)
 
                 log_etl.info("Extraction: Scraping RHP docs")
                 df_rhp = self.get_rhp_doc(urls=urls_dict["rhp_link"])
@@ -602,7 +523,6 @@ class IPODataExtractor:
                     key: [urls_dict[key][idx] for idx in sort_idx]
                     for key in urls_dict.keys()
                 }
-                # print(urls_dict)
 
                 # reorder function
                 def reorder_df(df, link_column, link_order):
@@ -641,347 +561,24 @@ class IPODataExtractor:
                     )
                 ]
                 df_list = [df_lnk, df_ipo, df_rhp, df_rvw, df_sub, df_gmp]
-                # print(df_list)
-                df_main = pd.concat(
+                df_comb = pd.concat(
                     df_list,
                     axis=1,
                     ignore_index=False,
                 )
-                # print(df_main.columns.to_list())
-                return df_main
 
             except Exception as e:
-                LogException(e)
+                LogException(e, logger=log_etl)
                 # raise CustomException(e)
 
-
-class InvestorGainCrawler:
-    def __init__(
-        self,
-        template: pd.DataFrame = None,
-        urls: List = None,
-        CrawlerConfig: GMPCrawlerConfig = None,
-    ):
-        CrawlerConfig = (
-            GMPCrawlerConfig(max_parallel=10, len_list=len(urls))
-            if CrawlerConfig is None
-            else CrawlerConfig
-        )
-        self.urls = urls
-        self.df_tmpl = template
-        self.browser_config = CrawlerConfig.browser_config
-        self.crawler_run_config = CrawlerConfig.crawler_run_config
-        self.rate_limiter = CrawlerConfig.rate_limiter
-        self.memory_adap_dispatcher = CrawlerConfig.memory_adap_dispatcher
-
-    def clean(self, data: pd.DataFrame = None) -> pd.DataFrame:
-        df = data.copy()
-        date_cols = [col for col in df.columns if "date" in col]
-        price_cols = [col for col in df.columns if "price" in col]
-        mask = ~df["day1_date"].apply(lambda x: pd.isna(x))  # df["day1_date"].notna()
-        # print(df["day1_date"], mask)
-        for col in date_cols:
-            df.loc[mask, col] = pd.to_datetime(
-                df.loc[mask, col], format="%d-%m-%Y", errors="coerce"
-            ).dt.strftime("%Y-%m-%d")
-
-        for col in price_cols:
-            df.loc[mask, col] = df.loc[mask, col].apply(
-                lambda x: x if pd.isna(x) else int(re.sub(r"[^\d]", "", x))
-            )
-        # print(df)
-        return df
-
-    async def extract_table_from_html(self, html: str, url: str) -> pd.DataFrame:
-        try:
-            extracted_values = self.df_tmpl.copy()
-            extracted_values["gmp_link"] = [url]
-
-            soup = BeautifulSoup(html, "html.parser")
-            tables = soup.find_all("table")
-            target_table = None
-
-            for table in tables:
-                header_cells = table.find_all(["th", "td"])
-                if any(
-                    (cell.get_text(strip=True) == "GMP Date") for cell in header_cells
-                ):
-                    target_table = table
-                    break
-            if not target_table:
-                log_etl.info(f"Extraction: GMP table not found in {url}")
-                return extracted_values
-            # print(target_table)
-            rows = target_table.find_all("tr")
-            # print(rows)
-            for i, row in enumerate(rows[1:], start=1):
-                cols = row.find_all("td")
-                if len(cols) >= 2:
-                    extracted_values[f"day{i}_date"] = [
-                        re.match(
-                            r"\d{1,2}-\d{1,2}-\d{4}", cols[0].get_text(strip=True)
-                        ).group()
-                    ]
-                    extracted_values[f"day{i}_price"] = [cols[2].get_text(strip=True)]
-            # print(extracted_values)
-            return extracted_values
-        except Exception as e:
-            LogException(e)
-            return extracted_values
-            # raise CustomException(e)
-
-    async def extract(self) -> pd.DataFrame:
-        df_ig = pd.DataFrame()
-        async with AsyncWebCrawler(config=self.browser_config) as crawler:
-            responses = await crawler.arun_many(
-                self.urls,
-                config=self.crawler_run_config,
-                dispatcher=self.memory_adap_dispatcher,
-            )
-            for result in responses:
-                if result.success and result.cleaned_html:
-                    df = await self.extract_table_from_html(
-                        result.cleaned_html, url=result.url
-                    )
-                    # print(df)
-                    df_ig = pd.concat([df_ig, df], axis=0, ignore_index=True)
-                else:
-                    backup = self.df_tmpl.copy()
-                    backup["gmp_link"] = [result.url]
-                    df_ig = pd.concat(
-                        [df_ig, backup],
-                        axis=0,
-                        ignore_index=True,
-                    )
-        # print(df_ig)
-        df_ig = self.clean(data=df_ig)
-        # print(df_ig)
-        return df_ig
-
-
-class IPOCentralCrawler:
-    def __init__(
-        self,
-        template: pd.DataFrame = None,
-        urls: List = None,
-        CrawlerConfig: GMPCrawlerConfig = None,
-    ):
-        if CrawlerConfig is None:
-            CrawlerConfig = GMPCrawlerConfig(max_parallel=10, len_list=len(urls))
-
-        self.urls = urls
-        self.df_tmpl = template
-        self.browser_config = CrawlerConfig.browser_config
-        self.crawler_run_config = CrawlerConfig.crawler_run_config
-        self.rate_limiter = CrawlerConfig.rate_limiter
-        self.memory_adap_dispatcher = CrawlerConfig.memory_adap_dispatcher
-
-    def clean(self, data: pd.DataFrame = None) -> pd.DataFrame:
-        df = data.copy()
-        cols_price = [col for col in df.columns if "price" in col]
-
-        def clean_price(val):
-            # print(val)
-            if pd.isna(val):  # leave NaNs as it is
-                return np.nan
-
-            val = str(val).strip()
-            if val == "–" or val == "":  # convert '–' and '' to NaN
-                return np.nan
-
-            # Extract number after currency like INR, Rs., etc.
-            currency_match = re.search(r"(?:INR|Rs\.?)\s*([\d,]+)", val, re.IGNORECASE)
-            if currency_match:
-                num_str = currency_match.group(1).replace(",", "")
-                try:
-                    return int(num_str)
-                except ValueError:
-                    return np.nan
-
-            if " – " in val:  # picking highest number in a range
-                # print(val)
-                parts = val.split(" – ")
-                nums = []
-                for p in parts:
-                    p = p.replace(",", "").strip()
-                    try:
-                        nums.append(int(p))
-                    except ValueError:
-                        continue
-                return max(nums) if nums else np.nan
-
-            elif "->" in val:
-                parts = val.split("->")
-                nums = []
-                for p in parts:
-                    p = p.replace(",", "").strip()
-                    try:
-                        nums.append(int(p))
-                    except ValueError:
-                        continue
-                return max(nums) if nums else np.nan
-
-            paren_match = re.search(r"\((\-?\d+)\)", val)  # number inside parentheses
-            if paren_match:
-                return int(paren_match.group(1))
-
-            elif val.startswith("–"):  # convert negative numbers properly
-                num = val.replace("–", "").replace(",", "").strip()
-                try:
-                    num = -int(num)
-                    return num
-                except Exception as e:
-                    LogException(e)
-                    return np.nan
-
-            else:  # remove ',' from 10,000
-                val = val.replace(",", "").replace(" ", "")
-                try:
-                    return int(val)
-                except ValueError:
-                    return np.nan
-
-        for col in cols_price:
-            df[col] = df[col].apply(clean_price)
-
-        return df
-
-    async def extract_table_from_html(self, html: str, url: str) -> pd.DataFrame:
-        try:
-            extracted_values = self.df_tmpl.copy()
-            extracted_values["gmp_link"] = [url]
-
-            soup = BeautifulSoup(html, "html.parser")
-            tables = soup.find_all("table")
-            target_table = None
-
-            # Find table with header cell 'Date'
-            for table in tables:
-                header_cells = table.find_all(["th", "td"])
-                if any((cell.get_text(strip=True) == "Date") for cell in header_cells):
-                    target_table = table
-                    break
-            if not target_table:
-                log_etl.info(f"Extraction: GMP table not found in {url}")
-                return extracted_values
-            # print(target_table)
-            rows = target_table.find_all("tr")
-            # print(rows)
-            for i, row in enumerate(rows[1:], start=1):
-                cols = row.find_all("td")
-                if len(cols) >= 2:
-                    extracted_values[f"day{i}_date"] = [
-                        parse(cols[0].get_text(strip=True), dayfirst=True)
-                        .date()
-                        .strftime("%Y-%m-%d")
-                    ]
-                    extracted_values[f"day{i}_price"] = [cols[1].get_text(strip=True)]
-            # print(extracted_values)
-            return extracted_values
-        except Exception as e:
-            LogException(e)
-            return extracted_values
-
-    async def extract(self) -> pd.DataFrame:
-        df_ic = pd.DataFrame()
-        async with AsyncWebCrawler(config=self.browser_config) as crawler:
-            responses = await crawler.arun_many(
-                self.urls,
-                config=self.crawler_run_config,
-                dispatcher=self.memory_adap_dispatcher,
-            )
-            for result in responses:
-                if result.success and result.cleaned_html:
-                    df = await self.extract_table_from_html(
-                        result.cleaned_html, url=result.url
-                    )
-                    # print(df)
-                    df_ic = pd.concat([df_ic, df], axis=0, ignore_index=True)
-                else:
-                    backup = self.df_tmpl.copy()
-                    backup["gmp_link"] = [result.url]
-                    df_ic = pd.concat(
-                        [df_ic, backup],
-                        axis=0,
-                        ignore_index=True,
-                    )
-        # print(df_ic)
-        df_ic = self.clean(data=df_ic)
-        # print(df_ic)
-        return df_ic
-
-
-class GMPDataExtractor:
-    def __init__(self, reorder_dates: bool = True):
-        self.reorder = reorder_dates
-
-    def reorder_dates(self, data: pd.DataFrame = None) -> pd.DataFrame:
-        df = data.copy()
-        iters = range(1, int((len(df.columns) - 1) / 2 + 1))
-        date_cols = [f"day{i}_date" for i in iters]
-        price_cols = [f"day{i}_price" for i in iters]
-
-        for day in date_cols:
-            df[day] = pd.to_datetime(df[day], errors="coerce")
-
-        dates_array = df[date_cols].to_numpy()
-        prices_array = df[price_cols].to_numpy()
-
-        def sort_dates_prices(dates, prices):
-            idx_sorted = np.argsort(dates, axis=1, kind="stable")
-            sorted_dates = np.take_along_axis(dates, idx_sorted, axis=1)
-            sorted_prices = np.take_along_axis(prices, idx_sorted, axis=1)
-            return sorted_dates, sorted_prices
-
-        sorted_dates_array, sorted_prices_array = sort_dates_prices(
-            dates_array, prices_array
-        )
-
-        df[date_cols] = sorted_dates_array
-        df[price_cols] = sorted_prices_array
-
-        return df
-
-    async def extract(self, urls: List = None) -> pd.DataFrame:
-        df = pd.DataFrame()
-        df_ic = None
-        df_ig = None
-
-        url_gmp_ig = [link for link in urls if "investorgain.com" in link]  # [:4]
-        url_gmp_ic = [link for link in urls if "ipocentral.in" in link]  # [:4]
-        df_tmpl = pd.DataFrame(
-            {
-                **{"gmp_link": [np.nan]},
-                **{
-                    f"day{i}_{m}": [np.nan]
-                    for i in range(1, 4)
-                    for m in ["date", "price"]
-                },
-            }
-        )
-        if url_gmp_ig:
-            cc_ig = GMPCrawlerConfig(max_parallel=10, len_list=len(url_gmp_ig))
-            df_ig = await InvestorGainCrawler(
-                template=df_tmpl, urls=url_gmp_ig, CrawlerConfig=cc_ig
-            ).extract()
-        if url_gmp_ic:
-            cc_ic = GMPCrawlerConfig(max_parallel=10, len_list=len(url_gmp_ic))
-            df_ic = await IPOCentralCrawler(
-                template=df_tmpl, urls=url_gmp_ic, CrawlerConfig=cc_ic
-            ).extract()
-        df_list = [df] + [
-            df for df in [df_ig, df_ic] if df is not None and not df.empty
-        ]
-        df = pd.concat(df_list, axis=0, ignore_index=True)
-        df = self.reorder_dates(data=df) if self.reorder_dates else df
-        # print(df)
-        return df
+        # df_comb.to_pickle("./z_check_data/comb_details.pkl")
+        return df_comb
 
 
 class ScreenerExtractor:
     def __init__(
         self,
-        Data: pd.DataFrame = None,
+        Data: pd.DataFrame,
         screener_crawl_method: Literal["css", "html"] = "css",
     ):
         self.data = Data.dropna(inplace=False, ignore_index=True, how="all")
@@ -1030,10 +627,10 @@ class ScreenerExtractor:
         try:
             return func()
         except Exception as e:
-            LogException(e)
+            LogException(e, logger=log_etl)
             return "error"
 
-    async def get_bse_symbol(self, urls: List[str] = None) -> pd.DataFrame:
+    async def get_bse_symbol(self, urls: List[str]) -> pd.DataFrame:
         df_bse = pd.DataFrame()
         async with AsyncWebCrawler(config=self.bse_browser_config) as crawler:
             results = await crawler.arun_many(
@@ -1074,7 +671,7 @@ class ScreenerExtractor:
                     log_etl.info(
                         f"Error in get_bse_symbol(). {bse_data = }, Error: {e}"
                     )
-                    LogException(e)
+                    LogException(e, logger=log_etl)
                     df_bse = pd.concat(
                         [df_bse, pd.DataFrame(bse_data)], axis=0, ignore_index=True
                     )
@@ -1186,7 +783,7 @@ class ScreenerExtractor:
                     log_etl.info(
                         f"Error in get_screener_data() from {result.url}. Data: {data}. Error: {e}"
                     )
-                    LogException(e)
+                    LogException(e, logger=log_etl)
                     df_data = pd.concat(
                         [df_data, pd.DataFrame(data)], axis=0, ignore_index=True
                     )
@@ -1195,7 +792,7 @@ class ScreenerExtractor:
 
             return df_data
 
-    async def get_screener_links(self, urls: List[str] = None) -> pd.DataFrame:
+    async def get_screener_links(self, urls: List[str]) -> pd.DataFrame:
         df_link = pd.DataFrame()
         async with AsyncWebCrawler(config=self.se_browser_config) as crawler:
             results = await crawler.arun_many(
@@ -1241,7 +838,7 @@ class ScreenerExtractor:
                     log_etl.info(
                         f"Extraction: Failed to get screener link for {scrn_dict['company_name']} @ {result.url}. Error: {e}"
                     )
-                    LogException(e)
+                    LogException(e, logger=log_etl)
                     df_link = pd.concat(
                         [df_link, pd.DataFrame(scrn_dict)],
                         axis=0,
@@ -1291,7 +888,7 @@ class ScreenerExtractor:
                     break
             except Exception as e:
                 log_etl.info(f"Error in while_loop_function(). {e}")
-                LogException(e)
+                LogException(e, logger=log_etl)
                 raise CustomException(e)
 
         # returning Null data
@@ -1397,6 +994,7 @@ class ScreenerExtractor:
 
             # combine data
             df_scrn = pd.concat([self.data, df_data], axis=1, ignore_index=False)
+            # df_scrn.to_pickle("./z_check_data/srcn_details.pkl")
             return df_scrn
 
         except Exception as e:
@@ -1430,10 +1028,10 @@ class ListingPriceExtractor:
             )
 
         except Exception as e:
-            LogException(e)
+            LogException(e, logger=log_etl)
             raise CustomException(e)
 
-    def get_company_token(self, symbol: str = None) -> Tuple[str, str]:
+    def get_company_token(self, symbol: str) -> Tuple[str, str]:
         try:
             filt = self.df_token["symbol"] == symbol
             token = self.df_token.loc[filt, "token"].values[0]
@@ -1444,7 +1042,7 @@ class ListingPriceExtractor:
             log_etl.info(
                 f"Error in get_company_token(). Data: {token = }, {exchange = }. Error: {e}"
             )
-            LogException(e)
+            LogException(e, logger=log_etl)
             return np.nan, np.nan
             # raise CustomException(e)
 
@@ -1485,12 +1083,12 @@ class ListingPriceExtractor:
 
         except Exception as e:
             log_etl.info(f"Error in get_listing_price(). Symbol: {symbol}, Error: {e}")
-            LogException(e)
+            LogException(e, logger=log_etl)
             return np.nan
 
     def extract(self) -> pd.DataFrame:
         try:
-            df_lp = self.data.copy()
+            df_lspr = self.data.copy()
 
             log_etl.info("Extraction: Initialising Angel One API")
             self.ao_totp = TOTP(self.ao_config.ao_qr_token).now()
@@ -1504,17 +1102,18 @@ class ListingPriceExtractor:
             res = res["data"]["exchanges"]
 
             log_etl.info("Extraction: Making API calls")
-            df_lp["IPO_listing_price"] = df_lp.apply(self.get_listing_price, axis=1)
+            df_lspr["IPO_listing_price"] = df_lspr.apply(self.get_listing_price, axis=1)
             log_etl.info("Extraction: Successfully acquired listing price data")
 
             log_etl.info("Extraction: Logging out of Angel One API")
             _ = self.ao_smart_api.terminateSession(self.ao_config.ao_client_id)
 
-            return df_lp
+            # df_lspr.to_pickle("./z_check_data/lspr_details.pkl")
+            return df_lspr
 
         except Exception as e:
-            LogException(e)
-            return df_lp
+            LogException(e, logger=log_etl)
+            return df_lspr
             # raise CustomException(e)
 
 
