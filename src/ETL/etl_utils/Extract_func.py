@@ -114,7 +114,9 @@ class IPODataExtractor:
                 "detail_url",
                 "IPO Open Date",
                 "IPO Close Date",
+                "IPO Date",
                 "Listed on",
+                "Listing Date",
                 "Tentative Listing Date",
                 "Face Value",
                 "Issue Price",
@@ -122,6 +124,46 @@ class IPODataExtractor:
                 "Lot Size",
                 "Total Issue Size",
             ]
+
+            def _fix_cols(data):
+                df = data.copy()
+                if not "IPO Open Date" in df.columns and "IPO Date" in df.columns:
+                    df["IPO Open Date"] = df["IPO Date"].apply(
+                        lambda row: row.split(" to ")[1].replace(
+                            row.split(" to ")[1].split(" ")[0], row.split(" to ")[0]
+                        )
+                    )
+                    df["IPO Open Date"] = pd.to_datetime(
+                        df["IPO Open Date"], format="%d %b %Y", errors="coerce"
+                    ).dt.strftime("%a, %b %d, %Y")
+                if not "IPO Close Date" in df.columns and "IPO Date" in df.columns:
+                    df["IPO Close Date"] = df["IPO Date"].apply(
+                        lambda x: x.split(" to ")[1].strip()
+                    )
+                    df["IPO Close Date"] = pd.to_datetime(
+                        df["IPO Close Date"], format="%d %b %Y", errors="coerce"
+                    ).dt.strftime("%a, %b %d, %Y")
+
+                if not "Listed on" in df.columns and "Listing Date" in df.columns:
+                    df["Listed on"] = df["Listing Date"]
+                if (
+                    not "Listed on" in df.columns
+                    and "Tentative Listing Date" in df.columns
+                ):
+                    df["Listed on"] = pd.to_datetime(
+                        df["Tentative Listing Date"],
+                        format="%a, %b %d, %Y",
+                        errors="coerce",
+                    ).dt.strftime("%a %b %d %Y")
+
+                if not "Issue Price" in df.columns and "Price Band" in df.columns:
+                    df["Issue Price"] = df["Price Band"].apply(
+                        lambda row: re.findall(r"\d+\.?\d*", row)[-1]
+                    )
+
+                return df
+
+            df_ipo = _fix_cols(df_ipo)
             df_ipo = df_ipo.loc[:, list_ipo_details]
 
             # datatype map
@@ -138,12 +180,12 @@ class IPODataExtractor:
                 "Tentative Listing Date": lambda x: np.nan
                 if pd.isna(x)
                 else datetime.strptime(x, "%a, %b %d, %Y").strftime("%Y-%m-%d"),
-                "Face Value": lambda x: int(re.findall(r"\d+", x)[0]),
+                "Face Value": lambda x: int(re.findall(r"\d+\.?\d*", x)[0]),
                 "Issue Price": lambda x: np.nan
                 if pd.isna(x) or x == "[.]"
                 else int(re.findall(r"\d+", x)[0]),
-                "Price Band": lambda x: int(re.findall(r"\d+", x)[1]),
-                "Lot Size": lambda x: int(re.findall(r"\d+", x)[0]),
+                "Price Band": lambda x: int(re.findall(r"\d+\.?\d*", x)[-1]),
+                "Lot Size": lambda x: int(re.findall(r"\d+\.?\d*", x)[0]),
                 "Total Issue Size": lambda x: float(re.findall(r"₹([^C]+?)Cr", x)[0]),
             }
 
@@ -156,6 +198,7 @@ class IPODataExtractor:
             df_ipo["Listed on"] = df_ipo["Listed on"].fillna(
                 df_ipo["Tentative Listing Date"]
             )
+
             df_ipo["Issue Price"] = df_ipo["Issue Price"].fillna(df_ipo["Price Band"])
 
             # rename columns
@@ -172,7 +215,7 @@ class IPODataExtractor:
             df_ipo.rename(columns=repl_cols, inplace=True)
 
             # drop remaining columns
-            df_ipo.drop(columns=["Tentative Listing Date", "Price Band"], inplace=True)
+            df_ipo.loc[:, list(repl_cols.values())]
 
         except Exception as e:
             LogException(e, logger=log_etl)
@@ -859,6 +902,13 @@ class ScreenerExtractor:
         counter = 1
         null_urls = int(pd.isnull(urls).sum())
         urls = [x for x in urls if not pd.isnull(x)]
+        if len(urls) == 0:
+            return pd.DataFrame(
+                {
+                    "bse_link": [np.nan] * null_urls,
+                    "bse_symbol": [np.nan] * null_urls,
+                }
+            )
         data = await func(urls)  # <- Dont send list with NaN or None
         while True:
             try:

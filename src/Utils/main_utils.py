@@ -159,7 +159,8 @@ def _set_dtypes(
 
         elif purpose == "put":
             for col in date_cols:  # when putting data, convert datetime to str
-                df[col] = df[col].dt.strftime("%Y-%m-%d")
+                if df[col].dtypes == "datetime64[ns]":
+                    df[col] = df[col].dt.strftime("%Y-%m-%d")
             dtype_flat = {
                 k: v
                 for k, v in dtype_flat_all.items()

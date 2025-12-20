@@ -30,7 +30,7 @@ A fully automated web application that will scrape to find companies currently g
     * `ScreenerExtractor` is an async function that will scrape [screener](https://www.screener.in/) website for selected companies financial data using `ScreenerHTMLCrawlerConfig` to output a dataframe with IPO, GMP & Screener data.
     * `ListingPriceExtractor` will use `AngelOneConfig` to make API calls and get the listing price of companies that are already listed.
     * `TransformData` main class will call `DataTransformer` sub class with `TransformationConfig` which will transform the data. Essentially it updates subscription columns, creates target column and reorder the dataframe.
-    * `LoadData` main class will call `DataLoader` sub class with `MongoDBConfig` which will load the data to MongoDB. Essentially is uses parallel upsert operation to update existing data or create new data.
+    * `LoadData` main class will call `DataLoader` sub class with `MongoDBConfig` which will load the data to MongoDB. Essentially it uses parallel upsert operation to update existing data or create new data.
 
 Below is the ETL Pipeline Flowchart. Flow chart images is [stored here](https://github.com/vikas-gits-good/P-1_Real_IPO-Listing-Price-Prediction/tree/main/docs/Images/).
 

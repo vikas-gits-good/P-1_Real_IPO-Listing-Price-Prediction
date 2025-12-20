@@ -348,8 +348,8 @@ document.querySelectorAll('.tablinks').forEach(btn => {
 });
 
 
-const latestData = JSON.parse(`{{ data_dict.LatestData | safe }}`);
-const archiveData = JSON.parse(`{{ data_dict.ArchiveData | safe }}`);
+const latestData = JSON.parse({{ data_dict.LatestData | safe }});
+const archiveData = JSON.parse({{ data_dict.ArchiveData | safe }});
 const availableLogs = {{ data_dict.LogFiles | tojson | safe }};
 const etlLogs = {{ data_dict.EtlLogFiles | tojson | safe }};
 const prdLogs = {{ data_dict.PrdLogFile | tojson | safe }};

@@ -55,16 +55,12 @@ class DataIngestion:
                 random_state=common_constants.RANDOM,
                 stratify=df_main[common_constants.TARGET_COLUMN],
             )
-            df_train.to_pickle("./df_train.pkl")
-            df_valid.to_pickle("./df_valid_0.pkl")
             df_valid, df_test = train_test_split(
                 df_valid,
                 test_size=self.data_ingestion_config.test_size,
                 random_state=common_constants.RANDOM,
                 # stratify=df_valid[common_constants.TARGET_COLUMN],
             )  # cat_1 has only 1 value causing issues. so disabling stratify
-            df_valid.to_pickle("./df_valid_1.pkl")
-            df_test.to_pickle("./df_test.pkl")
 
             log_trn.info("Data Ingestion: Saving ingested data to file")
             for data, path in [
